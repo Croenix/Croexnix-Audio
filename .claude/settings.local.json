@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(flutter --version)",
+      "Bash(dart --version)",
+      "Bash(pio --version)",
+      "Bash(arduino-cli version *)",
+      "Bash(flutter doctor *)",
+      "Read(//c/Program Files/**)",
+      "Read(//c/Program Files/Android/Android Studio/**)"
+    ]
+  }
+}

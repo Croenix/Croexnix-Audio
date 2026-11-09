@@ -1,0 +1,43 @@
+# Flutter/Dart
+croenix_app/.dart_tool/
+croenix_app/.packages
+croenix_app/build/
+croenix_app/.flutter-plugins
+croenix_app/.flutter-plugins-dependencies
+croenix_app/pubspec.lock
+croenix_app/*.g.dart
+croenix_app/*.freezed.dart
+
+# Android
+croenix_app/android/app/debug/
+croenix_app/android/app/profile/
+croenix_app/android/app/release/
+croenix_app/android/.gradle
+croenix_app/android/captures/
+croenix_app/android/gradlew
+croenix_app/android/gradlew.bat
+croenix_app/android/local.properties
+croenix_app/android/**/GeneratedPluginRegistrant.java
+croenix_app/android/key.properties
+*.jks
+*.keystore
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Arduino
+croenix_firmware/*.elf
+croenix_firmware/*.bin
+croenix_firmware/*.hex
+
+# Misc
+*.log
+.env
