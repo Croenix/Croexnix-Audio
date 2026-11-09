@@ -150,6 +150,17 @@ void CroenixWiFiManager::disconnectSTA() {
 }
 
 void CroenixWiFiManager::update() {
+  // Ensure Hotspot is always ON for direct app connection
+  if (!_apActive) {
+    static unsigned long lastApRetry = 0;
+    if (millis() - lastApRetry > 5000) {
+      lastApRetry = millis();
+      CROENIX_LOG("WiFiManager", "Hotspot dropped or inactive. Ensuring AP is active...");
+      startAP();
+      _syncStateWithManager();
+    }
+  }
+
   // Check connection timeout during connecting
   if (_staConnecting) {
     if (millis() - _staConnectStartTime > WIFI_CONNECT_TIMEOUT_MS) {

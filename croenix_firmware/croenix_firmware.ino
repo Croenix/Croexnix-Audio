@@ -36,6 +36,7 @@
 #include "src/hardware/RotaryEncoder.h"
 #include "src/hardware/DisplayManager.h"
 #include "src/hardware/SDManager.h"
+#include "src/hardware/StatusLed.h"
 #include "src/audio/AudioManager.h"
 
 // Static Module Instances
@@ -51,6 +52,7 @@ CroenixBLEManager   bleManager(&stateManager, &authManager, &wifiManager, &setti
 RotaryEncoder       rotaryEncoder(&stateManager, &authManager);
 DisplayManager      displayManager(&stateManager);
 SDManager           sdManager(&stateManager);
+StatusLed           statusLed(&wifiManager, &systemMonitor);
 AudioManager        audioManager(&stateManager);
 
 void setup() {
@@ -115,6 +117,10 @@ void setup() {
   CROENIX_LOG("Setup", "Initializing I2S Audio Pipeline...");
   audioManager.begin();
 
+  // 13. Power / Status LED Engine
+  CROENIX_LOG("Setup", "Initializing Power & Status LED Engine...");
+  statusLed.begin();
+
   // Print system summary
   Serial.println();
   Serial.println("--------------------------------------------------");
@@ -149,6 +155,7 @@ void loop() {
   displayManager.update();
   sdManager.update();
   audioManager.update();
+  statusLed.update();
 
   // Cooperative yield
   delay(5);
