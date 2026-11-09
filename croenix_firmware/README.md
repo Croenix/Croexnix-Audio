@@ -72,7 +72,7 @@ arduino-cli upload -p COM3 --fqbn esp32:esp32:esp32:PartitionScheme=huge_app "c:
 1. Power on the ESP32 board. Observe the onboard LED: after initialization, it pulses every **5 seconds**.
 2. On your Android phone, connect to Wi-Fi:
    - **SSID**: `Croenix-Audio`
-   - **Password**: `Croenix@123`
+   - **Password**: `12345678`
 3. Launch the **Croenix** app. The app automatically discovers the device at `192.168.4.1`.
 4. Tap **Connect**. The app requests `/api/pair` and receives a secure authentication token.
 5. The live Dashboard appears displaying real device status, free heap, uptime, and volume.

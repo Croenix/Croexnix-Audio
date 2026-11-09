@@ -22,7 +22,7 @@
 // Network Configuration (AP + STA)
 // ------------------------------------------------------------------------------
 #define AP_SSID_DEFAULT         "Croenix-Audio"
-#define AP_PASSWORD_DEFAULT     "Croenix@123"
+#define AP_PASSWORD_DEFAULT     "12345678"
 #define AP_CHANNEL_DEFAULT      1
 #define AP_MAX_CONNECTIONS      4
 #define AP_IP_ADDRESS           IPAddress(192, 168, 4, 1)
