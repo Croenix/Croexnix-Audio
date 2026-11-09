@@ -3,6 +3,7 @@
 #include "../diagnostics/SystemMonitor.h"
 #include "../PinConfig.h"
 #include "../Config.h"
+#include <WiFi.h>
 
 StatusLed::StatusLed(CroenixWiFiManager* wifiManager, SystemMonitor* systemMonitor)
   : _wifiManager(wifiManager),
@@ -20,11 +21,12 @@ void StatusLed::begin() {
   }
 
   pinMode(PIN_STATUS_LED, OUTPUT);
-  digitalWrite(PIN_STATUS_LED, STATUS_LED_ACTIVE_HIGH ? LOW : HIGH);
+  // Turn LED on briefly during boot
+  digitalWrite(PIN_STATUS_LED, STATUS_LED_ACTIVE_HIGH ? HIGH : LOW);
   _initialized = true;
   _lastBlinkCycleStart = millis();
 
-  CROENIX_LOG("StatusLed", "Status LED initialized on GPIO %d (Normal: 5s heartbeat, Error: 1s cadence)", PIN_STATUS_LED);
+  CROENIX_LOG("StatusLed", "Status LED initialized on GPIO %d (Normal: blink every 5s, Issue: full-time solid ON)", PIN_STATUS_LED);
 }
 
 void StatusLed::setManualError(bool hasError) {
@@ -34,9 +36,16 @@ void StatusLed::setManualError(bool hasError) {
 bool StatusLed::_isSystemNormal() {
   if (_manualError) return false;
 
-  // Check AP hotspot: must be active for app connection
-  if (_wifiManager && !_wifiManager->isAPActive()) {
-    return false;
+  // Allow 5-second initial grace period after power-on while AP and radio start up
+  if (millis() < 5000) {
+    return true;
+  }
+
+  // Check AP hotspot: must be active with valid IP for app connection
+  if (_wifiManager) {
+    if (!_wifiManager->isAPActive() && WiFi.softAPIP() == IPAddress(0, 0, 0, 0)) {
+      return false;
+    }
   }
 
   // Check heap memory
@@ -54,33 +63,25 @@ void StatusLed::update() {
   bool normal = _isSystemNormal();
 
   if (normal) {
-    // Normal operation: blink once every 5 seconds (5000 ms period, 150 ms pulse)
+    // Normal operation: blink power LED every 5 seconds (5000 ms period: 300 ms flash, then off)
     unsigned long elapsed = now - _lastBlinkCycleStart;
     if (elapsed >= 5000) {
       _lastBlinkCycleStart = now;
       elapsed = 0;
     }
 
-    bool shouldBeOn = (elapsed < 150);
+    bool shouldBeOn = (elapsed < 300);
     if (shouldBeOn != _ledState) {
       _ledState = shouldBeOn;
       digitalWrite(PIN_STATUS_LED, _ledState ? (STATUS_LED_ACTIVE_HIGH ? HIGH : LOW)
                                              : (STATUS_LED_ACTIVE_HIGH ? LOW : HIGH));
     }
   } else {
-    // Abnormal / Error operation: blink every 1 second (1000 ms period, 500 ms on / 500 ms off)
-    unsigned long elapsed = now - _lastBlinkCycleStart;
-    if (elapsed >= 1000) {
-      _lastBlinkCycleStart = now;
-      elapsed = 0;
-    }
-
-    bool shouldBeOn = (elapsed < 500);
-    if (shouldBeOn != _ledState) {
-      _ledState = shouldBeOn;
-      digitalWrite(PIN_STATUS_LED, _ledState ? (STATUS_LED_ACTIVE_HIGH ? HIGH : LOW)
-                                             : (STATUS_LED_ACTIVE_HIGH ? LOW : HIGH));
+    // If any issues: DO NOT BLINK. LED is FULL-TIME SOLID ON.
+    if (!_ledState) {
+      _ledState = true;
+      digitalWrite(PIN_STATUS_LED, STATUS_LED_ACTIVE_HIGH ? HIGH : LOW);
+      CROENIX_LOG("StatusLed", "Issue detected: Status LED held full-time solid ON.");
     }
   }
 }
-

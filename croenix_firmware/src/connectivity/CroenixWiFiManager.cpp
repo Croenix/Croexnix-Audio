@@ -237,7 +237,7 @@ const char* CroenixWiFiManager::getNetworkStateString() {
 }
 
 bool CroenixWiFiManager::isAPActive() {
-  return _apActive;
+  return _apActive || (WiFi.softAPIP() != IPAddress(0, 0, 0, 0));
 }
 
 bool CroenixWiFiManager::isSTAConnected() {
