@@ -39,3 +39,4 @@ sequenceDiagram
 - **Threshold**: 10 consecutive invalid authorization attempts.
 - **Lockout Duration**: 60 seconds (`AUTH_LOCKOUT_DURATION_MS`).
 - **Timing Protection**: Token comparison uses constant-time XOR byte iteration to prevent side-channel timing analysis.
+

@@ -41,3 +41,4 @@ stateDiagram-v2
 - **Base Retry Interval**: 5,000 ms.
 - **Maximum Retry Interval**: 60,000 ms.
 - **Jitter**: ±20% randomized jitter prevents synchronization bottlenecks.
+

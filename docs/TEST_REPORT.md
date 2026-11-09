@@ -26,3 +26,4 @@
 | **Encoder** | KY-040 rotary turn & long-press pairing | **PASS** | Hardware interrupt debounce in `RotaryEncoder.cpp` |
 | **I2S DAC** | CJMCU-5102 stereo PCM output | **PASS** | `I2SManager.cpp` on GPIO 26, 27, 22 |
 | **Storage NVS** | Wi-Fi credentials, tokens, settings | **PASS** | `SettingsManager.cpp` with `Preferences` |
+

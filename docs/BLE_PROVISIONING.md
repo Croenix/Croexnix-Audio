@@ -35,3 +35,4 @@ Croenix provides an out-of-band setup and recovery channel using Bluetooth Low E
 4. The ESP32 triggers `connectToRouterAsync()`.
 5. When the ESP32 acquires an IP address from the router, it pushes a notification on Network Status (`19b10003-...`) containing the router IP address.
 6. The app automatically transitions to Wi-Fi communication at the assigned IP.
+

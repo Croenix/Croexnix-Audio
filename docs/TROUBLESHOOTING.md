@@ -33,3 +33,4 @@ The onboard LED on GPIO 2 provides immediate visual feedback on board health:
 ### HTTP 403: "Pairing mode not active"
 - **Cause**: The pairing window has closed to prevent unauthorized pairing.
 - **Solution**: Long-press the KY-040 rotary encoder push-button for 2 seconds. The console will display `[AuthManager] Pairing mode ENABLED for 30000 ms`, allowing the phone to pair.
+

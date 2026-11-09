@@ -57,3 +57,4 @@ croenix_firmware/
 2. **Single Authoritative State**: `PlayerStateManager` holds the single source of truth for volume, mute, playback status, network status, and hardware states. Physical controls and remote commands update the same state.
 3. **Event-Driven Architecture**: `EventManager` distributes state changes to WebSocket clients, BLE subscribers, and physical displays simultaneously.
 4. **Resilient Coexistence**: The local Wi-Fi Access Point remains active independently of router connection status. Bluetooth A2DP audio operates continuously alongside Wi-Fi and BLE.
+

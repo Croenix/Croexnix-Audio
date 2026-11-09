@@ -35,3 +35,4 @@ All pins are centrally configured in [`croenix_firmware/src/PinConfig.h`](file:/
 - **CJMCU-5102 (PCM5102A)**: 3.3V or 5V (onboard 3.3V regulator). Connect SCK to GND to activate internal PLL.
 - **3× Gold A542 Amplifiers**: 12V–24V DC dedicated power supply. Common ground with ESP32 DAC GND.
 - **1.8" SPI TFT**: 3.3V VCC. Backlight (LED/BL) to 3.3V.
+

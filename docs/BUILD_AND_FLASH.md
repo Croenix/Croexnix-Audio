@@ -85,3 +85,4 @@ Upon flashing and restarting, the Serial Monitor outputs:
 --------------------------------------------------
 ```
 The onboard blue LED (GPIO 2) begins its **5-second heartbeat pulse**, confirming healthy execution.
+

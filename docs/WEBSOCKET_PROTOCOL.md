@@ -131,3 +131,4 @@ Server replies with command execution result:
   "applied_value": 85
 }
 ```
+

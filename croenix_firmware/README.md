@@ -98,3 +98,4 @@ arduino-cli upload -p COM3 --fqbn esp32:esp32:esp32:PartitionScheme=huge_app "c:
 3. Play music on any app (Spotify, Apple Music, YouTube, local player).
 4. Audio streams continuously to the ESP32 and outputs via the CJMCU-5102 DAC.
 5. The Android app dashboard automatically reflects Bluetooth as the active audio source.
+

@@ -207,3 +207,4 @@ Authorization: Bearer <token>
 }
 ```
 *(Device reboots safely 1.5 seconds later after the HTTP response packet is delivered).*
+

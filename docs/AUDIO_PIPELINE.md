@@ -48,3 +48,4 @@ The Bluetooth Classic A2DP receiver runs continuously in the background using th
 - **Decoding**: Hardware-accelerated SBC / AAC decoding to raw 44.1kHz 16-bit stereo PCM.
 - **Data Forwarding**: Data callback forwards audio buffers directly to `I2SManager` for low-latency playback.
 - **State Integration**: Player state updates automatically to `source: "bluetooth"` and `status: "playing"` upon receiving audio frames.
+
