@@ -12,6 +12,7 @@ public:
   void update();
 
   bool validateToken(const String& token);
+  bool hasValidToken() const { return !_activeToken.isEmpty(); }
   bool isPairingModeActive();
   void enablePairingMode(unsigned long timeoutMs = 30000);
   void disablePairingMode();

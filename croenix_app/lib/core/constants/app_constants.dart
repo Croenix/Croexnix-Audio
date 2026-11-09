@@ -25,6 +25,8 @@ class AppConstants {
   static const String storageKeyAuthToken = 'auth_token_';
   static const String storageKeySavedDevices = 'saved_devices';
   static const String storageKeyLastDevice = 'last_device';
+  static const String storageKeyPasslockPin = 'security_passlock_pin';
+  static const String storageKeyPasslockEnabled = 'security_passlock_enabled';
 
   // Device
   static const String deviceName = 'Croenix';

@@ -8,6 +8,9 @@ import '../../data/services/auth_service.dart';
 import '../../data/repositories/device_repository.dart';
 import '../../data/models/connection_state.dart' as conn;
 import '../../data/models/discovered_device.dart';
+import '../security/passlock_screen.dart';
+import '../settings/wifi_setup_dialog.dart';
+import '../settings/settings_screen.dart';
 
 // Providers
 final discoveryServiceProvider = Provider((ref) => DiscoveryService());
@@ -52,18 +55,41 @@ class _ConnectionScreenState extends ConsumerState<ConnectionScreen> {
     final devicesAsync = ref.watch(discoveredDevicesProvider);
     final connectionStateAsync = ref.watch(connectionStateProvider);
 
-    // Navigate to dashboard when connected
-    connectionStateAsync.whenData((state) {
+    // Navigate to dashboard (or passlock if enabled) when connected
+    connectionStateAsync.whenData((state) async {
       if (state.isConnected) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          context.go('/dashboard');
-        });
+        final passlockService = ref.read(passlockServiceProvider);
+        final hasPasslock = await passlockService.isPasslockEnabled();
+        if (hasPasslock && !passlockService.isSessionUnlocked) {
+          if (context.mounted) context.go('/passlock');
+        } else {
+          if (context.mounted) context.go('/dashboard');
+        }
       }
     });
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Connect to Croenix'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.wifi),
+            tooltip: 'Home Wi-Fi Setup',
+            onPressed: () => WifiSetupDialog.show(context),
+          ),
+          IconButton(
+            icon: const Icon(Icons.security),
+            tooltip: 'Security Passlock',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const SettingsScreen(),
+                ),
+              );
+            },
+          ),
+        ],
       ),
       body: SafeArea(
         child: Padding(
@@ -74,7 +100,23 @@ class _ConnectionScreenState extends ConsumerState<ConnectionScreen> {
               // Connection Status Card
               _buildConnectionStatusCard(connectionStateAsync),
 
-              const SizedBox(height: 32),
+              const SizedBox(height: 16),
+
+              // First-Time Setup & Discovery Info Card
+              _buildFirstTimeSetupCard(),
+
+              const SizedBox(height: 16),
+
+              // Device List Header
+              Text(
+                'DISCOVERED DEVICES',
+                style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                      color: CroenixColors.primary,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.2,
+                    ),
+              ),
+              const SizedBox(height: 8),
 
               // Device List
               Expanded(
@@ -83,11 +125,25 @@ class _ConnectionScreenState extends ConsumerState<ConnectionScreen> {
 
               const SizedBox(height: 16),
 
-              // Manual IP Button
-              OutlinedButton.icon(
-                onPressed: () => _showManualIpDialog(),
-                icon: const Icon(Icons.edit),
-                label: const Text('Enter IP Manually'),
+              // Action Buttons Row
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () => _showManualIpDialog(),
+                      icon: const Icon(Icons.edit, size: 18),
+                      label: const Text('Enter IP'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () => WifiSetupDialog.show(context),
+                      icon: const Icon(Icons.wifi, size: 18),
+                      label: const Text('Home Wi-Fi'),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -190,6 +246,92 @@ class _ConnectionScreenState extends ConsumerState<ConnectionScreen> {
           child: Text('Error: $error'),
         ),
       ),
+    );
+  }
+
+  Widget _buildFirstTimeSetupCard() {
+    return Card(
+      elevation: 0,
+      color: CroenixColors.surfaceVariant.withAlpha(80),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: const BorderSide(color: CroenixColors.borderSubtle),
+      ),
+      child: ExpansionTile(
+        initiallyExpanded: false,
+        leading: const Icon(Icons.help_outline, color: CroenixColors.primary),
+        title: const Text(
+          'First-Time Setup Guide',
+          style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+        ),
+        subtitle: const Text(
+          'Hotspot (12345678) & Bluetooth Audio',
+          style: TextStyle(fontSize: 12, color: CroenixColors.textSecondary),
+        ),
+        childrenPadding: const EdgeInsets.only(left: 16, right: 16, bottom: 16),
+        children: [
+          const Divider(),
+          _buildSetupStep(
+            number: '1',
+            title: 'Direct Hotspot Connection',
+            detail: 'Connect phone Wi-Fi to "Croenix-Audio" (Password: 12345678). Then tap Connect on 192.168.4.1.',
+          ),
+          const SizedBox(height: 10),
+          _buildSetupStep(
+            number: '2',
+            title: 'Always-On Bluetooth Audio',
+            detail: 'Open phone Bluetooth settings and pair with "Croenix Audio" for lossless music streaming.',
+          ),
+          const SizedBox(height: 10),
+          _buildSetupStep(
+            number: '3',
+            title: 'Home Wi-Fi & Security Passlock',
+            detail: 'Use "Home Wi-Fi" button to connect to your router, and tap the shield icon to set a security PIN.',
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSetupStep({required String number, required String title, required String detail}) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 22,
+          height: 22,
+          decoration: BoxDecoration(
+            color: CroenixColors.primary.withAlpha(40),
+            shape: BoxShape.circle,
+          ),
+          alignment: Alignment.center,
+          child: Text(
+            number,
+            style: const TextStyle(
+              color: CroenixColors.primary,
+              fontWeight: FontWeight.bold,
+              fontSize: 11,
+            ),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                detail,
+                style: const TextStyle(fontSize: 12, color: CroenixColors.textSecondary),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 

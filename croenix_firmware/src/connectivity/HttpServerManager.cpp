@@ -190,7 +190,11 @@ void HttpServerManager::_handleGetSystem(AsyncWebServerRequest* request) {
 }
 
 void HttpServerManager::_handlePostPair(AsyncWebServerRequest* request) {
-  if (!_authManager->isPairingModeActive()) {
+  // Direct hotspot (192.168.4.1) connection or first-time setup automatically permits pairing
+  bool isLocalHotspot = (request->client() && request->client()->localIP() == AP_IP_ADDRESS);
+  bool firstTimeSetup = !_authManager->hasValidToken();
+
+  if (!_authManager->isPairingModeActive() && !isLocalHotspot && !firstTimeSetup) {
     _sendError(request, 403, "Pairing mode not active. Press encoder button on device.", "PAIRING_INACTIVE");
     return;
   }

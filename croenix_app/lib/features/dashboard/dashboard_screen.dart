@@ -1,11 +1,13 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../core/theme/croenix_colors.dart';
 import '../../core/constants/app_constants.dart';
 import '../../data/models/device_state.dart';
 import '../../data/repositories/device_repository.dart';
 import '../connection/connection_screen.dart';
+import '../settings/wifi_setup_dialog.dart';
 
 // Provider for device state polling
 final deviceStateProvider = StreamProvider.autoDispose<DeviceState>((ref) async* {
@@ -46,9 +48,15 @@ class DashboardScreen extends ConsumerWidget {
         title: const Text('Croenix'),
         actions: [
           IconButton(
+            icon: const Icon(Icons.wifi),
+            tooltip: 'Wi-Fi Setup & Switch',
+            onPressed: () => WifiSetupDialog.show(context),
+          ),
+          IconButton(
             icon: const Icon(Icons.settings),
+            tooltip: 'Settings & Security',
             onPressed: () {
-              // TODO: Navigate to settings
+              context.push('/settings');
             },
           ),
         ],
@@ -204,6 +212,15 @@ class DashboardScreen extends ConsumerWidget {
               context,
               'Hotspot',
               connection.hotspotActive ? 'Active (${connection.hotspotClients} clients)' : 'Inactive',
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () => WifiSetupDialog.show(context),
+                icon: const Icon(Icons.settings_input_antenna, size: 18),
+                label: const Text('Configure Home Wi-Fi / Switch Network'),
+              ),
             ),
           ],
         ),
