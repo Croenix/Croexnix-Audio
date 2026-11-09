@@ -8,18 +8,32 @@ import '../../data/services/auth_service.dart';
 import '../../data/repositories/device_repository.dart';
 import '../../data/models/connection_state.dart' as conn;
 import '../../data/models/discovered_device.dart';
+import '../../data/services/ble_service.dart';
 import '../security/passlock_screen.dart';
 import '../settings/wifi_setup_dialog.dart';
 import '../settings/settings_screen.dart';
 
 // Providers
-final discoveryServiceProvider = Provider((ref) => DiscoveryService());
+final bleServiceProvider = Provider((ref) {
+  final service = BleService();
+  ref.onDispose(() => service.dispose());
+  return service;
+});
+
+final discoveryServiceProvider = Provider((ref) {
+  final bleService = ref.watch(bleServiceProvider);
+  final service = DiscoveryService(bleService: bleService);
+  ref.onDispose(() => service.dispose());
+  return service;
+});
 
 final connectionServiceProvider = Provider((ref) {
+  final bleService = ref.watch(bleServiceProvider);
   return ConnectionService(
     repository: DeviceRepository(),
     authService: AuthService(),
     discoveryService: ref.watch(discoveryServiceProvider),
+    bleService: bleService,
   );
 });
 
@@ -72,6 +86,13 @@ class _ConnectionScreenState extends ConsumerState<ConnectionScreen> {
       appBar: AppBar(
         title: const Text('Connect to Croenix'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            tooltip: 'Rescan Devices (BLE & Wi-Fi)',
+            onPressed: () {
+              ref.read(connectionServiceProvider).startDiscovery();
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.wifi),
             tooltip: 'Home Wi-Fi Setup',
@@ -383,8 +404,12 @@ class _ConnectionScreenState extends ConsumerState<ConnectionScreen> {
                     ),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Icon(
-                    Icons.music_note,
+                  child: Icon(
+                    device.isBle
+                        ? Icons.bluetooth
+                        : (device.method == DiscoveryMethod.hotspot
+                            ? Icons.wifi_tethering
+                            : Icons.music_note),
                     color: Colors.white,
                   ),
                 ),
@@ -396,7 +421,9 @@ class _ConnectionScreenState extends ConsumerState<ConnectionScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const SizedBox(height: 4),
-                    Text(device.ip),
+                    Text(device.isBle
+                        ? (device.bleDeviceId ?? 'BLE Ready')
+                        : device.ip),
                     const SizedBox(height: 2),
                     Text(
                       _getMethodLabel(device.method),
@@ -422,10 +449,12 @@ class _ConnectionScreenState extends ConsumerState<ConnectionScreen> {
 
   String _getMethodLabel(DiscoveryMethod method) {
     switch (method) {
+      case DiscoveryMethod.ble:
+        return 'Bluetooth Low Energy (BLE)';
       case DiscoveryMethod.mdns:
         return 'Found via mDNS';
       case DiscoveryMethod.hotspot:
-        return 'Direct Hotspot';
+        return 'Direct Wi-Fi Hotspot';
       case DiscoveryMethod.manual:
         return 'Manual Entry';
       case DiscoveryMethod.saved:

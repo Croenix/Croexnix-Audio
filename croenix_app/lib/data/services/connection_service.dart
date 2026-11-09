@@ -5,12 +5,13 @@ import '../models/discovered_device.dart';
 import '../repositories/device_repository.dart';
 import '../services/auth_service.dart';
 import '../services/discovery_service.dart';
-import '../../core/constants/app_constants.dart';
+import '../services/ble_service.dart';
 
 class ConnectionService {
-  final DeviceRepository _repository;
-  final AuthService _authService;
-  final DiscoveryService _discoveryService;
+  final DeviceRepository repository;
+  final AuthService authService;
+  final DiscoveryService discoveryService;
+  final BleService? bleService;
 
   ConnectionState _state = ConnectionState.disconnected();
   final _stateController = StreamController<ConnectionState>.broadcast();
@@ -19,9 +20,10 @@ class ConnectionService {
   ConnectionState get state => _state;
 
   ConnectionService({
-    required this._repository,
-    required this._authService,
-    required this._discoveryService,
+    required this.repository,
+    required this.authService,
+    required this.discoveryService,
+    this.bleService,
   });
 
   void _setState(ConnectionState newState) {
@@ -31,11 +33,11 @@ class ConnectionService {
 
   Future<void> startDiscovery() async {
     _setState(_state.copyWith(status: ConnectionStatus.scanning));
-    await _discoveryService.startDiscovery();
+    await discoveryService.startDiscovery();
   }
 
   void stopDiscovery() {
-    _discoveryService.stopDiscovery();
+    discoveryService.stopDiscovery();
   }
 
   Future<void> connectToDevice(DiscoveredDevice device) async {
@@ -45,15 +47,40 @@ class ConnectionService {
         device: device,
       ));
 
-      // Set base URL
-      _repository.setBaseUrl(device.baseUrl);
+      // Handle Bluetooth LE Connection
+      final ble = bleService;
+      if (device.isBle && ble != null && device.bleDeviceId != null) {
+        _setState(_state.copyWith(status: ConnectionStatus.authenticating));
+        final bleState = await ble.connect(device.bleDeviceId!);
+
+        if (bleState.currentIp != null && bleState.currentIp != '0.0.0.0') {
+          repository.setBaseUrl('http://${bleState.currentIp}:${device.port}');
+        } else {
+          repository.setBaseUrl(device.baseUrl);
+        }
+
+        final token = bleState.authToken;
+        if (token != null && token.isNotEmpty) {
+          repository.setAuthToken(token);
+          await authService.saveToken(device.ip, token);
+        }
+
+        _setState(_state.copyWith(
+          status: ConnectionStatus.connected,
+          authToken: token,
+        ));
+        return;
+      }
+
+      // Handle Wi-Fi (Hotspot / Home Router) HTTP Connection
+      repository.setBaseUrl(device.baseUrl);
 
       // Check if we have a saved token
-      final savedToken = await _authService.getToken(device.ip);
+      final savedToken = await authService.getToken(device.ip);
 
       if (savedToken != null) {
         // Try to authenticate with saved token
-        _repository.setAuthToken(savedToken);
+        repository.setAuthToken(savedToken);
 
         _setState(_state.copyWith(
           status: ConnectionStatus.authenticating,
@@ -68,7 +95,7 @@ class ConnectionService {
           return;
         } else {
           // Token invalid, need to re-pair
-          await _authService.deleteToken(device.ip);
+          await authService.deleteToken(device.ip);
         }
       }
 
@@ -93,38 +120,39 @@ class ConnectionService {
 
     try {
       // Call pair endpoint
-      final token = await _repository.pair();
+      final token = await repository.pair();
 
       // Save token
-      await _authService.saveToken(device.ip, token);
-      _repository.setAuthToken(token);
+      await authService.saveToken(device.ip, token);
+      repository.setAuthToken(token);
 
-      // Test connection
-      final isValid = await _testConnection();
-
-      if (isValid) {
-        _setState(_state.copyWith(
-          status: ConnectionStatus.connected,
-          authToken: token,
-        ));
-      } else {
-        throw Exception('Authentication failed');
-      }
+      _setState(_state.copyWith(
+        status: ConnectionStatus.connected,
+        authToken: token,
+      ));
     } on DioException catch (e) {
       if (e.response?.statusCode == 403) {
         _setState(_state.copyWith(
           status: ConnectionStatus.authFailed,
-          errorMessage: 'Pairing mode not active. Press encoder button on device.',
+          errorMessage: 'Pairing mode not enabled on device. Press pairing button.',
         ));
       } else {
-        rethrow;
+        _setState(_state.copyWith(
+          status: ConnectionStatus.error,
+          errorMessage: _getDioErrorMessage(e),
+        ));
       }
+    } catch (e) {
+      _setState(_state.copyWith(
+        status: ConnectionStatus.error,
+        errorMessage: e.toString(),
+      ));
     }
   }
 
   Future<bool> _testConnection() async {
     try {
-      await _repository.getDeviceInfo();
+      await repository.getDeviceInfo();
       return true;
     } catch (e) {
       return false;
@@ -132,17 +160,13 @@ class ConnectionService {
   }
 
   Future<void> disconnect() async {
+    final currentDevice = _state.device;
+    if (currentDevice != null) {
+      await authService.deleteToken(currentDevice.ip);
+    }
+
+    repository.setAuthToken(null);
     _setState(ConnectionState.disconnected());
-    _repository.setAuthToken(null);
-  }
-
-  Future<void> reconnect() async {
-    if (_state.device == null) return;
-
-    _setState(_state.copyWith(status: ConnectionStatus.reconnecting));
-
-    await Future.delayed(Duration(seconds: AppConstants.reconnectDelay));
-    await connectToDevice(_state.device!);
   }
 
   String _getDioErrorMessage(DioException e) {
@@ -150,18 +174,26 @@ class ConnectionService {
       case DioExceptionType.connectionTimeout:
       case DioExceptionType.sendTimeout:
       case DioExceptionType.receiveTimeout:
-        return 'Connection timeout';
+        return 'Connection timed out. Check device IP and network.';
       case DioExceptionType.badResponse:
-        return 'Server error: ${e.response?.statusCode}';
+        final statusCode = e.response?.statusCode;
+        if (statusCode == 401) {
+          return 'Authentication failed. Please re-pair.';
+        } else if (statusCode == 403) {
+          return 'Access denied. Pairing mode not active.';
+        } else if (statusCode == 404) {
+          return 'Device endpoint not found.';
+        }
+        return 'Server error ($statusCode).';
       case DioExceptionType.connectionError:
-        return 'Cannot connect to device';
+        return 'Cannot connect to device. Ensure Wi-Fi/Hotspot or Bluetooth is connected.';
       default:
-        return 'Connection error';
+        return 'Network error: ${e.message}';
     }
   }
 
   void dispose() {
     _stateController.close();
-    _discoveryService.dispose();
+    discoveryService.dispose();
   }
 }

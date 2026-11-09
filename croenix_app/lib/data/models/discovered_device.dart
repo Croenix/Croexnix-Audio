@@ -4,6 +4,7 @@ class DiscoveredDevice {
   final int port;
   final String? hostname;
   final DiscoveryMethod method;
+  final String? bleDeviceId;
 
   DiscoveredDevice({
     required this.name,
@@ -11,18 +12,22 @@ class DiscoveredDevice {
     required this.port,
     this.hostname,
     required this.method,
+    this.bleDeviceId,
   });
 
+  bool get isBle => method == DiscoveryMethod.ble;
   String get baseUrl => 'http://$ip:$port';
 
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
-    return other is DiscoveredDevice && other.ip == ip && other.port == port;
+    return other is DiscoveredDevice &&
+        ((isBle && other.isBle && other.bleDeviceId == bleDeviceId) ||
+            (!isBle && !other.isBle && other.ip == ip && other.port == port));
   }
 
   @override
-  int get hashCode => ip.hashCode ^ port.hashCode;
+  int get hashCode => isBle ? (bleDeviceId?.hashCode ?? 0) : (ip.hashCode ^ port.hashCode);
 }
 
 enum DiscoveryMethod {
@@ -30,4 +35,5 @@ enum DiscoveryMethod {
   hotspot,
   manual,
   saved,
+  ble,
 }

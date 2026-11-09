@@ -59,18 +59,24 @@ class _WifiSetupDialogState extends ConsumerState<WifiSetupDialog> {
     });
 
     try {
-      final repository = DeviceRepository();
       final connectionService = ref.read(connectionServiceProvider);
+      final bleService = ref.read(bleServiceProvider);
       final currentDevice = connectionService.state.device;
 
-      if (currentDevice != null) {
-        repository.setBaseUrl(currentDevice.baseUrl);
-        repository.setAuthToken(connectionService.state.authToken);
+      if (currentDevice != null && currentDevice.isBle) {
+        // Send Wi-Fi credentials via Bluetooth LE Provisioning
+        await bleService.provisionWifi(ssid: ssid, password: password);
       } else {
-        repository.setBaseUrl('http://${AppConstants.defaultHotspotIp}:${AppConstants.defaultPort}');
+        // Send Wi-Fi credentials via HTTP REST API
+        final repository = DeviceRepository();
+        if (currentDevice != null) {
+          repository.setBaseUrl(currentDevice.baseUrl);
+          repository.setAuthToken(connectionService.state.authToken);
+        } else {
+          repository.setBaseUrl('http://${AppConstants.defaultHotspotIp}:${AppConstants.defaultPort}');
+        }
+        await repository.configureWiFi(ssid, password);
       }
-
-      await repository.configureWiFi(ssid, password);
 
       setState(() {
         _isLoading = false;

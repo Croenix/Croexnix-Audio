@@ -28,6 +28,15 @@ class AppConstants {
   static const String storageKeyPasslockPin = 'security_passlock_pin';
   static const String storageKeyPasslockEnabled = 'security_passlock_enabled';
 
+  // Bluetooth Low Energy (BLE)
+  static const String bleDeviceName = 'Croenix';
+  static const String bleServiceUuid = '19b10000-e8f2-537e-4f6c-d104768a1214';
+  static const String bleCharDeviceInfo = '19b10001-e8f2-537e-4f6c-d104768a1214';
+  static const String bleCharProvisioning = '19b10002-e8f2-537e-4f6c-d104768a1214';
+  static const String bleCharNetworkStatus = '19b10003-e8f2-537e-4f6c-d104768a1214';
+  static const String bleCharPairing = '19b10004-e8f2-537e-4f6c-d104768a1214';
+  static const String bleCharEvents = '19b10005-e8f2-537e-4f6c-d104768a1214';
+
   // Device
   static const String deviceName = 'Croenix';
   static const String appVersion = '1.0.0';

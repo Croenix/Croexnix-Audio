@@ -32,6 +32,7 @@ dependencies:
   # UI
   google_fonts: ^6.2.1
   cupertino_icons: ^1.0.8
+  flutter_blue_plus: ^2.3.15
 
 dev_dependencies:
   flutter_test:

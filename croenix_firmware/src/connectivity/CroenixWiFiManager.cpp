@@ -96,12 +96,23 @@ void CroenixWiFiManager::_setupWiFiEvents() {
 
 bool CroenixWiFiManager::startAP() {
   _networkState = CroenixNetworkState::AP_STARTING;
-  WiFi.softAPConfig(AP_IP_ADDRESS, AP_GATEWAY, AP_SUBNET);
-  bool res = WiFi.softAP(AP_SSID_DEFAULT, AP_PASSWORD_DEFAULT, AP_CHANNEL_DEFAULT, false, AP_MAX_CONNECTIONS);
+
+  // Set explicit IP and DHCP lease start to ensure mobile phones receive an IP lease reliably
+  IPAddress apIP(192, 168, 4, 1);
+  IPAddress gateway(192, 168, 4, 1);
+  IPAddress subnet(255, 255, 255, 0);
+  IPAddress dhcpStart(192, 168, 4, 2);
+  WiFi.softAPConfig(apIP, gateway, subnet, dhcpStart);
+
+  const char* pass = (strlen(AP_PASSWORD_DEFAULT) >= 8) ? AP_PASSWORD_DEFAULT : nullptr;
+  bool res = WiFi.softAP(AP_SSID_DEFAULT, pass, AP_CHANNEL_DEFAULT, false, AP_MAX_CONNECTIONS);
   if (res) {
     _apActive = true;
     _networkState = isSTAConnected() ? CroenixNetworkState::AP_STA_ONLINE : CroenixNetworkState::AP_ONLINE;
-    CROENIX_LOG("WiFiManager", "AP Active: SSID='%s', IP='%s'", AP_SSID_DEFAULT, WiFi.softAPIP().toString().c_str());
+    CROENIX_LOG("WiFiManager", "AP Active: SSID='%s', IP='%s' (pass: %s)",
+                AP_SSID_DEFAULT,
+                WiFi.softAPIP().toString().c_str(),
+                pass ? pass : "OPEN / NONE");
   } else {
     _apActive = false;
     _networkState = CroenixNetworkState::NETWORK_ERROR;
