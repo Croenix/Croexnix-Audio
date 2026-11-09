@@ -80,7 +80,7 @@
 // System Diagnostics & Monitoring
 // ------------------------------------------------------------------------------
 #define SYSTEM_MONITOR_INTERVAL_MS      5000
-#define HEAP_WARNING_THRESHOLD_BYTES    25000
+#define HEAP_WARNING_THRESHOLD_BYTES    3500
 
 // ------------------------------------------------------------------------------
 // Audio Engine Defaults
