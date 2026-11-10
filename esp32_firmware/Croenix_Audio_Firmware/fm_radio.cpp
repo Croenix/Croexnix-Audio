@@ -1,11 +1,11 @@
 #include "fm_radio.h"
-#include <Si4703_Breakout.h>
+#include <SI470X.h>
 #include <Wire.h>
+#include <Preferences.h>
 #include "device_state.h"
 
-// Si4703 FM radio instance
-Si4703_Breakout radio(FM_RST, FM_SDA);
-
+// Si4703 FM radio instance (using PU2CLR_SI470X library)
+static SI470X radio;
 static bool fmInitialized = false;
 
 void initFMRadio() {
@@ -13,19 +13,17 @@ void initFMRadio() {
 
     Wire.begin(FM_SDA, FM_SCL);
 
-    if (radio.begin()) {
-        radio.setVolume(15);  // Max volume (handled by main volume control)
-        radio.powerOn();
+    // Initialize Si4703 with Reset and SDA pins
+    radio.setup(FM_RST, FM_SDA);
+    radio.setVolume(15);
+    radio.setBand(0);    // 0 = 87.5–108 MHz (US / Europe)
+    radio.setSpace(1);   // 1 = 100 kHz spacing
 
-        // Set to default frequency
-        radio.setChannel(8800); // 88.0 MHz
+    // Set to default frequency: 88.0 MHz (8800 in 10 kHz units)
+    radio.setFrequency(8800);
 
-        fmInitialized = true;
-
-        DEBUG_PRINTLN("[FM] Si4703 initialized successfully");
-    } else {
-        DEBUG_PRINTLN("[FM] Failed to initialize Si4703!");
-    }
+    fmInitialized = true;
+    DEBUG_PRINTLN("[FM] Si4703 initialized successfully");
 }
 
 void setFMFrequency(float frequency) {
@@ -34,8 +32,9 @@ void setFMFrequency(float frequency) {
     if (frequency < FM_MIN_FREQUENCY) frequency = FM_MIN_FREQUENCY;
     if (frequency > FM_MAX_FREQUENCY) frequency = FM_MAX_FREQUENCY;
 
-    int channel = (int)(frequency * 10);
-    radio.setChannel(channel);
+    // Convert MHz to 10 kHz units (e.g., 88.0 MHz -> 8800)
+    uint16_t freqInt = (uint16_t)(frequency * 100.0f + 0.5f);
+    radio.setFrequency(freqInt);
 
     if (xSemaphoreTake(g_stateMutex, portMAX_DELAY) == pdTRUE) {
         g_deviceState.fmFrequency = frequency;
@@ -46,17 +45,17 @@ void setFMFrequency(float frequency) {
 }
 
 float getFMFrequency() {
-    if (!fmInitialized) return 0.0;
+    if (!fmInitialized) return 0.0f;
 
-    int channel = radio.getChannel();
-    return (float)channel / 10.0;
+    uint16_t freq = radio.getFrequency();
+    return (float)freq / 100.0f;
 }
 
 void seekFMUp() {
     if (!fmInitialized) return;
 
     DEBUG_PRINTLN("[FM] Seeking up...");
-    radio.seekUp();
+    radio.seek(0, 1); // seek_mode=0 (wrap), direction=1 (up)
 
     // Update frequency in state
     float newFreq = getFMFrequency();
@@ -72,7 +71,7 @@ void seekFMDown() {
     if (!fmInitialized) return;
 
     DEBUG_PRINTLN("[FM] Seeking down...");
-    radio.seekDown();
+    radio.seek(0, 0); // seek_mode=0 (wrap), direction=0 (down)
 
     // Update frequency in state
     float newFreq = getFMFrequency();
@@ -106,7 +105,9 @@ uint8_t getFMSignalStrength() {
     if (!fmInitialized) return 0;
 
     // Get RSSI from Si4703 (0-75)
-    uint8_t rssi = radio.getRSSI();
+    int rssi = radio.getRssi();
+    if (rssi < 0) rssi = 0;
+    if (rssi > 75) rssi = 75;
 
     // Convert to 0-100 scale
     uint8_t strength = map(rssi, 0, 75, 0, 100);
@@ -122,8 +123,14 @@ uint8_t getFMSignalStrength() {
 String getFMStationName() {
     if (!fmInitialized) return "";
 
-    // RDS support (if available)
-    // This is a placeholder - full RDS implementation needed
+    // RDS Station Name if available
+    if (radio.getRdsReady()) {
+        char* name = radio.getRdsStationName();
+        if (name && strlen(name) > 0) {
+            return String(name);
+        }
+    }
+
     return "FM Radio";
 }
 
