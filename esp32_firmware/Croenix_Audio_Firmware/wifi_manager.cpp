@@ -41,11 +41,20 @@ void updateWiFiManager() {
     if (xSemaphoreTake(g_stateMutex, pdMS_TO_TICKS(10)) == pdTRUE) {
         g_deviceState.wifiConnected = connected;
         g_deviceState.apMode = apModeActive;
+        strncpy(g_deviceState.macAddress, WiFi.macAddress().c_str(), sizeof(g_deviceState.macAddress) - 1);
 
         if (connected) {
             strncpy(g_deviceState.wifiSSID, WiFi.SSID().c_str(), MAX_SSID_LENGTH - 1);
             g_deviceState.wifiRSSI = WiFi.RSSI();
             strncpy(g_deviceState.localIP, WiFi.localIP().toString().c_str(), 15);
+        } else if (apModeActive) {
+            strncpy(g_deviceState.wifiSSID, AP_SSID, MAX_SSID_LENGTH - 1);
+            g_deviceState.wifiRSSI = 0;
+            strncpy(g_deviceState.localIP, WiFi.softAPIP().toString().c_str(), 15);
+        } else {
+            g_deviceState.localIP[0] = '\0';
+            g_deviceState.wifiSSID[0] = '\0';
+            g_deviceState.wifiRSSI = 0;
         }
 
         xSemaphoreGive(g_stateMutex);

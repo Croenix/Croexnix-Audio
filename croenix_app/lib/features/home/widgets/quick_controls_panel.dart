@@ -1,9 +1,27 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/croenix_colors.dart';
 import '../../../data/models/device_state.dart';
+import '../../../data/services/websocket_service.dart';
 
-class QuickControlsPanel extends StatelessWidget {
+class QuickControlsPanel extends StatefulWidget {
   const QuickControlsPanel({super.key});
+
+  @override
+  State<QuickControlsPanel> createState() => _QuickControlsPanelState();
+}
+
+class _QuickControlsPanelState extends State<QuickControlsPanel> {
+  final WebSocketService _wsService = WebSocketService();
+  DeviceState _deviceState = const DeviceState();
+
+  @override
+  void initState() {
+    super.initState();
+    _deviceState = _wsService.currentState;
+    _wsService.stateStream.listen((state) {
+      if (mounted) setState(() => _deviceState = state);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -13,17 +31,17 @@ class QuickControlsPanel extends StatelessWidget {
         const Padding(
           padding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
           child: Text(
-            'Quick Controls',
+            'AUDIO SOURCES',
             style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
               color: CroenixColors.textSecondary,
-              letterSpacing: 0.5,
+              letterSpacing: 1.0,
             ),
           ),
         ),
         Container(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.all(16),
           decoration: GlassEffect.standard,
           child: Column(
             children: [
@@ -36,47 +54,70 @@ class QuickControlsPanel extends StatelessWidget {
                     label: 'Bluetooth',
                     color: CroenixColors.sourceBluetooth,
                     source: AudioSource.bluetooth,
+                    isActive: _deviceState.currentSource == AudioSource.bluetooth,
                   ),
                   _buildSourceButton(
                     icon: Icons.sd_card_rounded,
                     label: 'SD Card',
                     color: CroenixColors.sourceSDCard,
                     source: AudioSource.sdCard,
+                    isActive: _deviceState.currentSource == AudioSource.sdCard,
                   ),
                   _buildSourceButton(
                     icon: Icons.radio_rounded,
                     label: 'FM Radio',
                     color: CroenixColors.sourceFM,
                     source: AudioSource.fmRadio,
+                    isActive: _deviceState.currentSource == AudioSource.fmRadio,
                   ),
                   _buildSourceButton(
                     icon: Icons.language_rounded,
                     label: 'Stream',
                     color: CroenixColors.sourceWebStream,
                     source: AudioSource.webStream,
+                    isActive: _deviceState.currentSource == AudioSource.webStream,
                   ),
                 ],
               ),
-
-              const SizedBox(height: 20),
+              const SizedBox(height: 16),
               const Divider(color: CroenixColors.divider),
-              const SizedBox(height: 20),
+              const SizedBox(height: 12),
 
-              // Quick Action Buttons
+              // Volume Quick Slider
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  _buildActionButton(
-                    icon: Icons.shuffle_rounded,
-                    label: 'Shuffle',
+                  const Icon(Icons.volume_down_rounded, color: CroenixColors.textSecondary, size: 20),
+                  Expanded(
+                    child: SliderTheme(
+                      data: SliderTheme.of(context).copyWith(
+                        activeTrackColor: CroenixColors.primaryCyan,
+                        inactiveTrackColor: Colors.white12,
+                        thumbColor: Colors.white,
+                        thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
+                        trackHeight: 3,
+                      ),
+                      child: Slider(
+                        value: _deviceState.volume.toDouble().clamp(0.0, 100.0),
+                        min: 0,
+                        max: 100,
+                        onChanged: (val) {
+                          _wsService.setVolume(val.toInt());
+                        },
+                      ),
+                    ),
                   ),
-                  _buildActionButton(
-                    icon: Icons.repeat_rounded,
-                    label: 'Repeat',
-                  ),
-                  _buildActionButton(
-                    icon: Icons.queue_music_rounded,
-                    label: 'Queue',
+                  const Icon(Icons.volume_up_rounded, color: CroenixColors.textSecondary, size: 20),
+                  const SizedBox(width: 8),
+                  SizedBox(
+                    width: 36,
+                    child: Text(
+                      '${_deviceState.volume}%',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: CroenixColors.textPrimary,
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -92,29 +133,39 @@ class QuickControlsPanel extends StatelessWidget {
     required String label,
     required Color color,
     required AudioSource source,
+    required bool isActive,
   }) {
     return GestureDetector(
       onTap: () {
-        // TODO: Switch audio source
+        _wsService.setSource(source);
       },
       child: Column(
-        mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
-            width: 56,
-            height: 56,
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            width: 54,
+            height: 54,
             decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.15),
+              color: isActive ? color.withValues(alpha: 0.25) : Colors.white.withValues(alpha: 0.05),
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
-                color: color.withValues(alpha: 0.3),
-                width: 1,
+                color: isActive ? color : Colors.white.withValues(alpha: 0.1),
+                width: isActive ? 2 : 1,
               ),
+              boxShadow: isActive
+                  ? [
+                      BoxShadow(
+                        color: color.withValues(alpha: 0.35),
+                        blurRadius: 12,
+                        offset: const Offset(0, 4),
+                      ),
+                    ]
+                  : null,
             ),
             child: Icon(
               icon,
-              color: color,
-              size: 28,
+              color: isActive ? color : CroenixColors.textSecondary,
+              size: 26,
             ),
           ),
           const SizedBox(height: 8),
@@ -122,49 +173,8 @@ class QuickControlsPanel extends StatelessWidget {
             label,
             style: TextStyle(
               fontSize: 11,
-              fontWeight: FontWeight.w500,
-              color: color,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildActionButton({
-    required IconData icon,
-    required String label,
-  }) {
-    return GestureDetector(
-      onTap: () {
-        // TODO: Handle action
-      },
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: CroenixColors.glassBackground,
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: CroenixColors.glassBorder,
-                width: 1,
-              ),
-            ),
-            child: Icon(
-              icon,
-              color: CroenixColors.textSecondary,
-              size: 24,
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            label,
-            style: const TextStyle(
-              fontSize: 11,
-              color: CroenixColors.textSecondary,
+              fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+              color: isActive ? CroenixColors.textPrimary : CroenixColors.textSecondary,
             ),
           ),
         ],

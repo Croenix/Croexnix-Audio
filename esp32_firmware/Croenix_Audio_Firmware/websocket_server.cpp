@@ -35,7 +35,7 @@ void updateWebSocketServer() {
 void broadcastDeviceState() {
     if (webSocket.connectedClients() == 0) return;
 
-    StaticJsonDocument<512> doc;
+    StaticJsonDocument<1024> doc;
 
     if (xSemaphoreTake(g_stateMutex, pdMS_TO_TICKS(50)) == pdTRUE) {
         doc["type"] = "state_update";
@@ -46,6 +46,44 @@ void broadcastDeviceState() {
         doc["duration"] = g_deviceState.trackDuration;
         doc["bitrate"] = g_deviceState.trackBitrate;
         doc["eq_preset"] = g_deviceState.eqPreset;
+
+        // Device & Firmware identification
+        doc["device_name"] = g_deviceState.deviceName;
+        doc["firmware_version"] = g_deviceState.firmwareVersion;
+        doc["compile_date"] = g_deviceState.compileDate;
+        doc["compile_time"] = g_deviceState.compileTime;
+        doc["chip_model"] = g_deviceState.chipModel;
+        doc["chip_cores"] = g_deviceState.chipCores;
+        doc["cpu_freq"] = g_deviceState.cpuFreqMHz;
+        doc["sdk_version"] = g_deviceState.sdkVersion;
+
+        // System & Performance metrics
+        doc["uptime"] = g_deviceState.uptime;
+        doc["free_heap"] = g_deviceState.freeHeap;
+        doc["total_heap"] = g_deviceState.totalHeap;
+        doc["min_free_heap"] = g_deviceState.minFreeHeap;
+        doc["heap_usage"] = g_deviceState.heapUsagePercent;
+        doc["flash_size"] = g_deviceState.flashChipSize;
+        doc["cpu0"] = g_deviceState.cpuUsageCore0;
+        doc["cpu1"] = g_deviceState.cpuUsageCore1;
+
+        // Network metrics
+        doc["wifi_connected"] = isWiFiConnected();
+        doc["ap_mode"] = isAPMode();
+        doc["ssid"] = getSSID();
+        doc["rssi"] = getRSSI();
+        doc["local_ip"] = getLocalIP();
+        doc["mac"] = getMACAddress();
+        doc["clients"] = webSocket.connectedClients();
+
+        // Bluetooth & SD & FM
+        doc["bt_connected"] = g_deviceState.bluetoothConnected;
+        doc["bt_device"] = g_deviceState.bluetoothDevice;
+        doc["sd_mounted"] = g_deviceState.sdCardMounted;
+        doc["sd_size"] = (uint32_t)(g_deviceState.sdCardSize / 1024);
+        doc["sd_used"] = (uint32_t)(g_deviceState.sdCardUsed / 1024);
+        doc["fm_frequency"] = g_deviceState.fmFrequency;
+        doc["fm_rssi"] = g_deviceState.fmSignalStrength;
 
         xSemaphoreGive(g_stateMutex);
     }
@@ -136,6 +174,16 @@ void onWebSocketEvent(uint8_t num, WStype_t type, uint8_t* payload, size_t lengt
             else if (strcmp(command, "load_file") == 0) handleLoadFileCommand(doc);
             else if (strcmp(command, "fm_frequency") == 0) handleFMFrequencyCommand(doc);
             else if (strcmp(command, "stream_url") == 0) handleStreamURLCommand(doc);
+            else if (strcmp(command, "get_status") == 0 || strcmp(command, "get_info") == 0) {
+                broadcastDeviceState();
+                broadcastMetadata();
+                broadcastNetworkInfo();
+            }
+            else if (strcmp(command, "reboot") == 0) {
+                DEBUG_PRINTLN("[WEBSOCKET] Reboot requested by client");
+                delay(200);
+                ESP.restart();
+            }
             else {
                 DEBUG_PRINTF("[WEBSOCKET] Unknown command: %s\n", command);
             }

@@ -14,7 +14,20 @@ void initDeviceState() {
         return;
     }
 
-    DEBUG_PRINTLN("Device state initialized");
+    // Populate hardware & firmware identification
+    strncpy(g_deviceState.deviceName, DEVICE_NAME, sizeof(g_deviceState.deviceName) - 1);
+    strncpy(g_deviceState.firmwareVersion, FIRMWARE_VERSION, sizeof(g_deviceState.firmwareVersion) - 1);
+    strncpy(g_deviceState.bluetoothDevice, BT_DEVICE_NAME, sizeof(g_deviceState.bluetoothDevice) - 1);
+    strncpy(g_deviceState.chipModel, ESP.getChipModel(), sizeof(g_deviceState.chipModel) - 1);
+    g_deviceState.chipCores = ESP.getChipCores();
+    g_deviceState.cpuFreqMHz = ESP.getCpuFreqMHz();
+    strncpy(g_deviceState.sdkVersion, ESP.getSdkVersion(), sizeof(g_deviceState.sdkVersion) - 1);
+    g_deviceState.totalHeap = ESP.getHeapSize();
+    g_deviceState.freeHeap = ESP.getFreeHeap();
+    g_deviceState.minFreeHeap = ESP.getMinFreeHeap();
+    g_deviceState.flashChipSize = ESP.getFlashChipSize();
+
+    DEBUG_PRINTLN("[STATE] Device state initialized (Croenix)");
 }
 
 void updateMetadata(const char* title, const char* artist, const char* album) {

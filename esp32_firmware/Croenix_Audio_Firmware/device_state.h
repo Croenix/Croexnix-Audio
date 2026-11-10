@@ -31,6 +31,7 @@ struct DeviceState {
     char wifiSSID[MAX_SSID_LENGTH] = "";
     int8_t wifiRSSI = 0;              // dBm
     char localIP[16] = "";
+    char macAddress[18] = "";
     uint8_t connectedClients = 0;
 
     // SD Card state
@@ -40,13 +41,25 @@ struct DeviceState {
 
     // Bluetooth state
     bool bluetoothConnected = false;
-    char bluetoothDevice[MAX_METADATA_LENGTH] = "";
+    char bluetoothDevice[MAX_METADATA_LENGTH] = BT_DEVICE_NAME;
 
-    // System state
+    // System & Hardware state
+    char deviceName[32] = DEVICE_NAME;
+    char firmwareVersion[16] = FIRMWARE_VERSION;
+    char compileDate[20] = __DATE__;
+    char compileTime[16] = __TIME__;
+    char chipModel[24] = "ESP32";
+    uint8_t chipCores = 2;
+    uint32_t cpuFreqMHz = 240;
+    char sdkVersion[24] = "";
     uint32_t uptime = 0;              // seconds
     uint8_t cpuUsageCore0 = 0;        // 0-100
     uint8_t cpuUsageCore1 = 0;        // 0-100
     uint32_t freeHeap = 0;            // bytes
+    uint32_t totalHeap = 0;           // bytes
+    uint32_t minFreeHeap = 0;         // bytes
+    uint8_t heapUsagePercent = 0;     // 0-100%
+    uint32_t flashChipSize = 0;       // bytes
 
     // EQ Preset
     uint8_t eqPreset = 0;             // 0=Flat, 1=Rock, 2=Pop, etc.

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/theme/croenix_colors.dart';
+import '../../data/services/websocket_service.dart';
 import '../player/player_screen.dart';
 import '../settings/settings_screen.dart';
 import 'widgets/connection_status_card.dart';
@@ -15,6 +16,13 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    // Attempt real-time connection on startup
+    WebSocketService().autoConnect();
+  }
 
   final List<Widget> _screens = [
     const _HomeTab(),

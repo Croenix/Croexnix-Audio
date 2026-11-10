@@ -168,10 +168,15 @@ void loop() {
 // ============================================
 
 void updateSystemState() {
-    if (xSemaphoreTake(g_stateMutex, portMAX_DELAY) == pdTRUE) {
-        // Update system metrics
+    if (xSemaphoreTake(g_stateMutex, pdMS_TO_TICKS(50)) == pdTRUE) {
+        // Update live system metrics
         g_deviceState.uptime = millis() / 1000;
         g_deviceState.freeHeap = ESP.getFreeHeap();
+        g_deviceState.totalHeap = ESP.getHeapSize();
+        g_deviceState.minFreeHeap = ESP.getMinFreeHeap();
+        if (g_deviceState.totalHeap > 0) {
+            g_deviceState.heapUsagePercent = (uint8_t)(((g_deviceState.totalHeap - g_deviceState.freeHeap) * 100) / g_deviceState.totalHeap);
+        }
 
         // Get CPU usage for both cores (approximate)
         g_deviceState.cpuUsageCore0 = 100 - (uxTaskGetSystemState(nullptr, 0, nullptr) / 10);

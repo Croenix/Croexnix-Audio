@@ -2,8 +2,12 @@
 #define CONFIG_H
 
 // ============================================
-// ESP32 Audio Player Configuration
+// ESP32 Audio Player Configuration - Croenix
 // ============================================
+
+#define DEVICE_NAME               "Croenix"
+#define FIRMWARE_VERSION          "1.0.0"
+#define BT_DEVICE_NAME            "Croenix"
 
 // --- Hardware Pin Definitions ---
 
@@ -66,15 +70,15 @@ enum AudioSource {
 
 // --- Network Configuration ---
 
-// Wi-Fi SoftAP Settings
-#define AP_SSID                   "ESP32-Audio-Setup"
+// Wi-Fi SoftAP Settings (Provisioning AP)
+#define AP_SSID                   "Croenix"
 #define AP_PASSWORD               ""  // Open AP
 #define AP_CHANNEL                1
 #define AP_MAX_CONNECTIONS        4
 #define AP_IP                     "192.168.4.1"
 
 // mDNS Service Discovery
-#define MDNS_HOSTNAME             "esp32-audio"
+#define MDNS_HOSTNAME             "croenix"
 #define MDNS_SERVICE_NAME         "croenix-audio"
 #define MDNS_SERVICE_PROTOCOL     "tcp"
 #define MDNS_SERVICE_PORT         8080
