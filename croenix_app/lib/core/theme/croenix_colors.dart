@@ -73,11 +73,11 @@ class GlassEffect {
           color: CroenixColors.glassBorder,
           width: 1,
         ),
-        boxShadow: [
+        boxShadow: const [
           BoxShadow(
             color: CroenixColors.shadow,
             blurRadius: 20,
-            offset: const Offset(0, 10),
+            offset: Offset(0, 10),
           ),
         ],
       );
@@ -89,11 +89,11 @@ class GlassEffect {
           color: CroenixColors.glassBorder,
           width: 1.5,
         ),
-        boxShadow: [
+        boxShadow: const [
           BoxShadow(
             color: CroenixColors.shadow,
             blurRadius: 30,
-            offset: const Offset(0, 15),
+            offset: Offset(0, 15),
           ),
         ],
       );

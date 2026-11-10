@@ -43,12 +43,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
           physics: const BouncingScrollPhysics(),
           slivers: [
             // App Bar
-            SliverAppBar(
+            const SliverAppBar(
               expandedHeight: 100,
               floating: false,
               pinned: true,
               backgroundColor: Colors.transparent,
-              flexibleSpace: const FlexibleSpaceBar(
+              flexibleSpace: FlexibleSpaceBar(
                 title: Text(
                   'Settings',
                   style: TextStyle(
@@ -202,12 +202,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   _buildSection(
                     title: 'About',
                     children: [
-                      SettingsTile(
+                      const SettingsTile(
                         title: 'App Version',
                         subtitle: '1.0.0',
                         icon: Icons.app_settings_alt_rounded,
                       ),
-                      SettingsTile(
+                      const SettingsTile(
                         title: 'Firmware Version',
                         subtitle: 'ESP32 v1.0.0',
                         icon: Icons.developer_board_rounded,

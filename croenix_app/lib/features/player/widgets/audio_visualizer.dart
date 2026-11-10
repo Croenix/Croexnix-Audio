@@ -50,8 +50,8 @@ class _VisualizerPainter extends CustomPainter {
 
     // Draw background gradient
     final bgRect = Rect.fromLTWH(0, 0, size.width, size.height);
-    final bgGradient = RadialGradient(
-      colors: [
+    const bgGradient = RadialGradient(
+      colors: const [
         CroenixColors.darkSurface,
         CroenixColors.darkBackground,
       ],
@@ -79,7 +79,7 @@ class _VisualizerPainter extends CustomPainter {
     }
 
     // Draw spectrum bars
-    final barCount = 40;
+    const barCount = 40;
     final angleStep = (2 * math.pi) / barCount;
     final innerRadius = maxRadius * 0.4;
     final maxBarHeight = maxRadius * 0.35;
@@ -98,8 +98,8 @@ class _VisualizerPainter extends CustomPainter {
       final endX = center.dx + math.cos(angle) * (innerRadius + barHeight);
       final endY = center.dy + math.sin(angle) * (innerRadius + barHeight);
 
-      final gradient = LinearGradient(
-        colors: [
+      const gradient = LinearGradient(
+        colors: const [
           CroenixColors.spectrumLow,
           CroenixColors.spectrumMid,
           CroenixColors.spectrumHigh,
@@ -160,7 +160,7 @@ class _VisualizerPainter extends CustomPainter {
 
   void _drawMusicIcon(Canvas canvas, Offset center, Paint paint) {
     final path = Path();
-    final iconSize = 40.0;
+    const iconSize = 40.0;
 
     // Draw music note shape
     path.addOval(Rect.fromCircle(
