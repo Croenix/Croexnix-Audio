@@ -1,39 +1,18 @@
 class DiscoveredDevice {
   final String name;
-  final String ip;
+  final String hostname;
+  final String ipAddress;
   final int port;
-  final String? hostname;
-  final DiscoveryMethod method;
-  final String? bleDeviceId;
 
-  DiscoveredDevice({
+  const DiscoveredDevice({
     required this.name,
-    required this.ip,
+    required this.hostname,
+    required this.ipAddress,
     required this.port,
-    this.hostname,
-    required this.method,
-    this.bleDeviceId,
   });
 
-  bool get isBle => method == DiscoveryMethod.ble;
-  String get baseUrl => 'http://$ip:$port';
+  String get displayName => name.replaceAll('.local', '');
 
   @override
-  bool operator ==(Object other) {
-    if (identical(this, other)) return true;
-    return other is DiscoveredDevice &&
-        ((isBle && other.isBle && other.bleDeviceId == bleDeviceId) ||
-            (!isBle && !other.isBle && other.ip == ip && other.port == port));
-  }
-
-  @override
-  int get hashCode => isBle ? (bleDeviceId?.hashCode ?? 0) : (ip.hashCode ^ port.hashCode);
-}
-
-enum DiscoveryMethod {
-  mdns,
-  hotspot,
-  manual,
-  saved,
-  ble,
+  String toString() => '$displayName ($ipAddress:$port)';
 }

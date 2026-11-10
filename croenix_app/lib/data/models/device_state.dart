@@ -1,180 +1,194 @@
-class DeviceState {
-  final DeviceInfo device;
-  final ConnectionInfo connection;
-  final AudioInfo audio;
-  final StorageInfo storage;
-  final SystemInfo system;
+import 'package:equatable/equatable.dart';
 
-  DeviceState({
-    required this.device,
-    required this.connection,
-    required this.audio,
-    required this.storage,
-    required this.system,
+enum AudioSource {
+  none,
+  bluetooth,
+  sdCard,
+  fmRadio,
+  webStream,
+}
+
+class DeviceState extends Equatable {
+  final AudioSource currentSource;
+  final int volume;
+  final bool isPlaying;
+  final bool isMuted;
+
+  // Track metadata
+  final String trackTitle;
+  final String trackArtist;
+  final String trackAlbum;
+  final int trackDuration; // seconds
+  final int trackPosition; // seconds
+  final int trackBitrate; // kbps
+
+  // FM Radio state
+  final double fmFrequency; // MHz
+  final int fmSignalStrength; // 0-100
+  final String fmStationName;
+
+  // Network state
+  final bool wifiConnected;
+  final bool apMode;
+  final String wifiSSID;
+  final int wifiRSSI; // dBm
+  final String localIP;
+  final int connectedClients;
+
+  // SD Card state
+  final bool sdCardMounted;
+  final int sdCardSize; // bytes
+  final int sdCardUsed; // bytes
+
+  // Bluetooth state
+  final bool bluetoothConnected;
+  final String bluetoothDevice;
+
+  // System state
+  final int uptime; // seconds
+  final int cpuUsageCore0; // 0-100
+  final int cpuUsageCore1; // 0-100
+  final int freeHeap; // bytes
+
+  // EQ Preset
+  final int eqPreset; // 0=Flat, 1=Rock, 2=Pop, etc.
+
+  const DeviceState({
+    this.currentSource = AudioSource.none,
+    this.volume = 50,
+    this.isPlaying = false,
+    this.isMuted = false,
+    this.trackTitle = '',
+    this.trackArtist = '',
+    this.trackAlbum = '',
+    this.trackDuration = 0,
+    this.trackPosition = 0,
+    this.trackBitrate = 0,
+    this.fmFrequency = 88.0,
+    this.fmSignalStrength = 0,
+    this.fmStationName = '',
+    this.wifiConnected = false,
+    this.apMode = false,
+    this.wifiSSID = '',
+    this.wifiRSSI = 0,
+    this.localIP = '',
+    this.connectedClients = 0,
+    this.sdCardMounted = false,
+    this.sdCardSize = 0,
+    this.sdCardUsed = 0,
+    this.bluetoothConnected = false,
+    this.bluetoothDevice = '',
+    this.uptime = 0,
+    this.cpuUsageCore0 = 0,
+    this.cpuUsageCore1 = 0,
+    this.freeHeap = 0,
+    this.eqPreset = 0,
   });
+
+  DeviceState copyWith({
+    AudioSource? currentSource,
+    int? volume,
+    bool? isPlaying,
+    bool? isMuted,
+    String? trackTitle,
+    String? trackArtist,
+    String? trackAlbum,
+    int? trackDuration,
+    int? trackPosition,
+    int? trackBitrate,
+    double? fmFrequency,
+    int? fmSignalStrength,
+    String? fmStationName,
+    bool? wifiConnected,
+    bool? apMode,
+    String? wifiSSID,
+    int? wifiRSSI,
+    String? localIP,
+    int? connectedClients,
+    bool? sdCardMounted,
+    int? sdCardSize,
+    int? sdCardUsed,
+    bool? bluetoothConnected,
+    String? bluetoothDevice,
+    int? uptime,
+    int? cpuUsageCore0,
+    int? cpuUsageCore1,
+    int? freeHeap,
+    int? eqPreset,
+  }) {
+    return DeviceState(
+      currentSource: currentSource ?? this.currentSource,
+      volume: volume ?? this.volume,
+      isPlaying: isPlaying ?? this.isPlaying,
+      isMuted: isMuted ?? this.isMuted,
+      trackTitle: trackTitle ?? this.trackTitle,
+      trackArtist: trackArtist ?? this.trackArtist,
+      trackAlbum: trackAlbum ?? this.trackAlbum,
+      trackDuration: trackDuration ?? this.trackDuration,
+      trackPosition: trackPosition ?? this.trackPosition,
+      trackBitrate: trackBitrate ?? this.trackBitrate,
+      fmFrequency: fmFrequency ?? this.fmFrequency,
+      fmSignalStrength: fmSignalStrength ?? this.fmSignalStrength,
+      fmStationName: fmStationName ?? this.fmStationName,
+      wifiConnected: wifiConnected ?? this.wifiConnected,
+      apMode: apMode ?? this.apMode,
+      wifiSSID: wifiSSID ?? this.wifiSSID,
+      wifiRSSI: wifiRSSI ?? this.wifiRSSI,
+      localIP: localIP ?? this.localIP,
+      connectedClients: connectedClients ?? this.connectedClients,
+      sdCardMounted: sdCardMounted ?? this.sdCardMounted,
+      sdCardSize: sdCardSize ?? this.sdCardSize,
+      sdCardUsed: sdCardUsed ?? this.sdCardUsed,
+      bluetoothConnected: bluetoothConnected ?? this.bluetoothConnected,
+      bluetoothDevice: bluetoothDevice ?? this.bluetoothDevice,
+      uptime: uptime ?? this.uptime,
+      cpuUsageCore0: cpuUsageCore0 ?? this.cpuUsageCore0,
+      cpuUsageCore1: cpuUsageCore1 ?? this.cpuUsageCore1,
+      freeHeap: freeHeap ?? this.freeHeap,
+      eqPreset: eqPreset ?? this.eqPreset,
+    );
+  }
 
   factory DeviceState.fromJson(Map<String, dynamic> json) {
     return DeviceState(
-      device: DeviceInfo.fromJson(json['device'] ?? {}),
-      connection: ConnectionInfo.fromJson(json['connection'] ?? {}),
-      audio: AudioInfo.fromJson(json['audio'] ?? {}),
-      storage: StorageInfo.fromJson(json['storage'] ?? {}),
-      system: SystemInfo.fromJson(json['system'] ?? {}),
-    );
-  }
-}
-
-class DeviceInfo {
-  final String name;
-  final String firmwareVersion;
-  final int uptimeSeconds;
-
-  DeviceInfo({
-    required this.name,
-    required this.firmwareVersion,
-    required this.uptimeSeconds,
-  });
-
-  factory DeviceInfo.fromJson(Map<String, dynamic> json) {
-    return DeviceInfo(
-      name: json['name'] ?? 'Unknown',
-      firmwareVersion: json['firmware_version'] ?? '0.0.0',
-      uptimeSeconds: json['uptime_seconds'] ?? 0,
-    );
-  }
-
-  String get uptimeFormatted {
-    final duration = Duration(seconds: uptimeSeconds);
-    final hours = duration.inHours;
-    final minutes = duration.inMinutes.remainder(60);
-    return '${hours}h ${minutes}m';
-  }
-}
-
-class ConnectionInfo {
-  final bool routerConnected;
-  final String routerIp;
-  final String routerSsid;
-  final int routerRssi;
-  final bool hotspotActive;
-  final int hotspotClients;
-  final String activeInterface;
-
-  ConnectionInfo({
-    required this.routerConnected,
-    required this.routerIp,
-    required this.routerSsid,
-    required this.routerRssi,
-    required this.hotspotActive,
-    required this.hotspotClients,
-    required this.activeInterface,
-  });
-
-  factory ConnectionInfo.fromJson(Map<String, dynamic> json) {
-    return ConnectionInfo(
-      routerConnected: json['router_connected'] ?? false,
-      routerIp: json['router_ip'] ?? '',
-      routerSsid: json['router_ssid'] ?? '',
-      routerRssi: json['router_rssi'] ?? 0,
-      hotspotActive: json['hotspot_active'] ?? false,
-      hotspotClients: json['hotspot_clients'] ?? 0,
-      activeInterface: json['active_interface'] ?? 'none',
-    );
-  }
-
-  String get signalStrength {
-    if (routerRssi >= -50) return 'Excellent';
-    if (routerRssi >= -60) return 'Good';
-    if (routerRssi >= -70) return 'Fair';
-    return 'Weak';
-  }
-}
-
-class AudioInfo {
-  final String source;
-  final String status;
-  final int volume;
-  final bool muted;
-  final String codec;
-  final int sampleRate;
-  final int bitDepth;
-  final int channels;
-
-  AudioInfo({
-    required this.source,
-    required this.status,
-    required this.volume,
-    required this.muted,
-    required this.codec,
-    required this.sampleRate,
-    required this.bitDepth,
-    required this.channels,
-  });
-
-  factory AudioInfo.fromJson(Map<String, dynamic> json) {
-    return AudioInfo(
-      source: json['source'] ?? 'none',
-      status: json['status'] ?? 'stopped',
+      currentSource: AudioSource.values[json['source'] ?? 0],
       volume: json['volume'] ?? 50,
-      muted: json['muted'] ?? false,
-      codec: json['codec'] ?? '',
-      sampleRate: json['sample_rate'] ?? 0,
-      bitDepth: json['bit_depth'] ?? 0,
-      channels: json['channels'] ?? 0,
+      isPlaying: json['playing'] ?? false,
+      trackTitle: json['title'] ?? '',
+      trackArtist: json['artist'] ?? '',
+      trackAlbum: json['album'] ?? '',
+      trackDuration: json['duration'] ?? 0,
+      trackPosition: json['position'] ?? 0,
+      trackBitrate: json['bitrate'] ?? 0,
+      eqPreset: json['eq_preset'] ?? 0,
     );
   }
 
-  bool get isPlaying => status == 'playing';
-  bool get hasActiveSource => source != 'none';
-}
-
-class StorageInfo {
-  final bool sdInserted;
-  final int totalBytes;
-  final int usedBytes;
-  final int freeBytes;
-
-  StorageInfo({
-    required this.sdInserted,
-    required this.totalBytes,
-    required this.usedBytes,
-    required this.freeBytes,
-  });
-
-  factory StorageInfo.fromJson(Map<String, dynamic> json) {
-    return StorageInfo(
-      sdInserted: json['sd_inserted'] ?? false,
-      totalBytes: json['total_bytes'] ?? 0,
-      usedBytes: json['used_bytes'] ?? 0,
-      freeBytes: json['free_bytes'] ?? 0,
-    );
-  }
-}
-
-class SystemInfo {
-  final int freeHeap;
-  final int totalHeap;
-  final int minFreeHeap;
-  final String restartReason;
-
-  SystemInfo({
-    required this.freeHeap,
-    required this.totalHeap,
-    required this.minFreeHeap,
-    required this.restartReason,
-  });
-
-  factory SystemInfo.fromJson(Map<String, dynamic> json) {
-    return SystemInfo(
-      freeHeap: json['free_heap'] ?? 0,
-      totalHeap: json['total_heap'] ?? 0,
-      minFreeHeap: json['min_free_heap'] ?? 0,
-      restartReason: json['restart_reason'] ?? 'Unknown',
-    );
+  Map<String, dynamic> toJson() {
+    return {
+      'source': currentSource.index,
+      'volume': volume,
+      'playing': isPlaying,
+      'title': trackTitle,
+      'artist': trackArtist,
+      'album': trackAlbum,
+      'duration': trackDuration,
+      'position': trackPosition,
+      'bitrate': trackBitrate,
+      'eq_preset': eqPreset,
+    };
   }
 
-  int get heapUsagePercent {
-    if (totalHeap == 0) return 0;
-    return ((totalHeap - freeHeap) * 100 / totalHeap).round();
-  }
+  @override
+  List<Object?> get props => [
+        currentSource,
+        volume,
+        isPlaying,
+        trackTitle,
+        trackArtist,
+        trackPosition,
+        trackDuration,
+        wifiConnected,
+        fmFrequency,
+      ];
 }

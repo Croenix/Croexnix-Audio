@@ -1,224 +1,290 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import '../../core/theme/croenix_colors.dart';
-import '../../core/constants/app_constants.dart';
-import '../connection/connection_screen.dart';
-import '../security/passlock_screen.dart';
-import 'wifi_setup_dialog.dart';
+import '../../data/services/websocket_service.dart';
+import '../../data/models/device_state.dart';
+import '../wifi_setup/wifi_setup_screen.dart';
+import 'widgets/settings_tile.dart';
+import 'widgets/info_card.dart';
 
-class SettingsScreen extends ConsumerStatefulWidget {
+class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
 
   @override
-  ConsumerState<SettingsScreen> createState() => _SettingsScreenState();
+  State<SettingsScreen> createState() => _SettingsScreenState();
 }
 
-class _SettingsScreenState extends ConsumerState<SettingsScreen> {
-  bool _passlockEnabled = false;
-  bool _isLoading = true;
+class _SettingsScreenState extends State<SettingsScreen> {
+  final WebSocketService _wsService = WebSocketService();
+  DeviceState _deviceState = const DeviceState();
 
   @override
   void initState() {
     super.initState();
-    _loadPasslockStatus();
-  }
-
-  Future<void> _loadPasslockStatus() async {
-    final service = ref.read(passlockServiceProvider);
-    final enabled = await service.isPasslockEnabled();
-    if (mounted) {
-      setState(() {
-        _passlockEnabled = enabled;
-        _isLoading = false;
-      });
-    }
-  }
-
-  Future<void> _handlePasslockToggle() async {
-    final service = ref.read(passlockServiceProvider);
-    if (_passlockEnabled) {
-      // Prompt for current PIN to disable
-      final unlocked = await Navigator.push<bool>(
-        context,
-        MaterialPageRoute(
-          builder: (context) => PasslockScreen(
-            mode: PasslockMode.unlock,
-            onSuccess: () => Navigator.pop(context, true),
-          ),
-        ),
-      );
-
-      if (unlocked == true) {
-        await service.disablePasslock();
-        await _loadPasslockStatus();
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Security Passlock disabled'),
-              backgroundColor: CroenixColors.warning,
-            ),
-          );
-        }
-      }
-    } else {
-      // Setup new PIN
-      final setupComplete = await Navigator.push<bool>(
-        context,
-        MaterialPageRoute(
-          builder: (context) => PasslockScreen(
-            mode: PasslockMode.setup,
-            onSuccess: () => Navigator.pop(context, true),
-          ),
-        ),
-      );
-
-      if (setupComplete == true) {
-        await _loadPasslockStatus();
-      }
-    }
+    _wsService.stateStream.listen((state) {
+      setState(() => _deviceState = state);
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    final connectionState = ref.watch(connectionStateProvider).valueOrNull;
-
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Settings & Security'),
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            CroenixColors.darkBackground,
+            Color(0xFF0F1523),
+          ],
+        ),
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(20),
-        children: [
-          // Section: Network & Wi-Fi
-          Text(
-            'NETWORK & CONNECTIVITY',
-            style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: CroenixColors.primary,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1.2,
-                ),
-          ),
-          const SizedBox(height: 12),
-          Card(
-            child: Column(
-              children: [
-                ListTile(
-                  leading: const Icon(Icons.wifi, color: CroenixColors.primary),
-                  title: const Text('Configure Home Wi-Fi'),
-                  subtitle: const Text('Connect Croenix to your home router network'),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () => WifiSetupDialog.show(context),
-                ),
-                const Divider(height: 1),
-                ListTile(
-                  leading: const Icon(Icons.wifi_tethering, color: CroenixColors.info),
-                  title: const Text('Direct Hotspot Details'),
-                  subtitle: const Text('SSID: Croenix-Audio | Pass: 12345678 (192.168.4.1)'),
-                  trailing: TextButton(
-                    onPressed: () => WifiSetupDialog.show(context),
-                    child: const Text('Switch'),
+      child: SafeArea(
+        child: CustomScrollView(
+          physics: const BouncingScrollPhysics(),
+          slivers: [
+            // App Bar
+            SliverAppBar(
+              expandedHeight: 100,
+              floating: false,
+              pinned: true,
+              backgroundColor: Colors.transparent,
+              flexibleSpace: const FlexibleSpaceBar(
+                title: Text(
+                  'Settings',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: CroenixColors.textPrimary,
                   ),
                 ),
-              ],
+                centerTitle: false,
+                titlePadding: EdgeInsets.only(left: 24, bottom: 16),
+              ),
             ),
-          ),
-          const SizedBox(height: 24),
 
-          // Section: Security & Passlock
-          Text(
-            'SECURITY & ACCESS CONTROL',
-            style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: CroenixColors.primary,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1.2,
-                ),
-          ),
-          const SizedBox(height: 12),
-          Card(
-            child: Column(
-              children: [
-                SwitchListTile(
-                  secondary: Icon(
-                    _passlockEnabled ? Icons.lock : Icons.lock_open,
-                    color: _passlockEnabled ? CroenixColors.success : CroenixColors.textSecondary,
+            SliverPadding(
+              padding: const EdgeInsets.all(16),
+              sliver: SliverList(
+                delegate: SliverChildListDelegate([
+                  // Device Info Card
+                  InfoCard(
+                    title: 'Device Information',
+                    items: [
+                      InfoItem(
+                        label: 'Device Name',
+                        value: 'Croenix Audio Player',
+                        icon: Icons.speaker_rounded,
+                      ),
+                      InfoItem(
+                        label: 'IP Address',
+                        value: _deviceState.localIP.isNotEmpty
+                            ? _deviceState.localIP
+                            : 'Not Connected',
+                        icon: Icons.lan_rounded,
+                      ),
+                      InfoItem(
+                        label: 'Wi-Fi Network',
+                        value: _deviceState.wifiSSID.isNotEmpty
+                            ? _deviceState.wifiSSID
+                            : 'Not Connected',
+                        icon: Icons.wifi_rounded,
+                      ),
+                      InfoItem(
+                        label: 'Signal Strength',
+                        value: _deviceState.wifiRSSI != 0
+                            ? '${_deviceState.wifiRSSI} dBm'
+                            : '---',
+                        icon: Icons.signal_cellular_alt_rounded,
+                      ),
+                    ],
                   ),
-                  title: const Text('App Security Passlock'),
-                  subtitle: Text(
-                    _passlockEnabled
-                        ? 'PIN protection active: unauthorized access locked'
-                        : 'No PIN set: anyone with app can control player',
-                  ),
-                  value: _passlockEnabled,
-                  onChanged: _isLoading ? null : (_) => _handlePasslockToggle(),
-                ),
-                if (_passlockEnabled) ...[
-                  const Divider(height: 1),
-                  ListTile(
-                    leading: const Icon(Icons.pin, color: CroenixColors.primary),
-                    title: const Text('Change Security PIN'),
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: () async {
-                      final nav = Navigator.of(context);
-                      // Verify current PIN first
-                      final verified = await nav.push<bool>(
-                        MaterialPageRoute(
-                          builder: (context) => PasslockScreen(
-                            mode: PasslockMode.unlock,
-                            onSuccess: () => Navigator.pop(context, true),
-                          ),
-                        ),
-                      );
 
-                      if (verified == true && mounted) {
-                        await nav.push<bool>(
-                          MaterialPageRoute(
-                            builder: (context) => PasslockScreen(
-                              mode: PasslockMode.setup,
-                              onSuccess: () => Navigator.pop(context, true),
+                  const SizedBox(height: 16),
+
+                  // Network Settings
+                  _buildSection(
+                    title: 'Network',
+                    children: [
+                      SettingsTile(
+                        title: 'Wi-Fi Configuration',
+                        subtitle: 'Configure network connection',
+                        icon: Icons.wifi_rounded,
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const WiFiSetupScreen(),
                             ),
-                          ),
-                        );
-                        if (mounted) {
-                          await _loadPasslockStatus();
-                        }
-                      }
-                    },
+                          );
+                        },
+                      ),
+                      SettingsTile(
+                        title: 'Access Point Mode',
+                        subtitle: _deviceState.apMode
+                            ? 'Active - Visible to nearby devices'
+                            : 'Inactive',
+                        icon: Icons.router_rounded,
+                        trailing: Switch(
+                          value: _deviceState.apMode,
+                          onChanged: (value) {
+                            // TODO: Toggle AP mode
+                          },
+                        ),
+                      ),
+                    ],
                   ),
-                ],
-              ],
-            ),
-          ),
-          const SizedBox(height: 24),
 
-          // Section: Active Connection
-          Text(
-            'ACTIVE CONNECTION',
-            style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: CroenixColors.primary,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1.2,
-                ),
-          ),
-          const SizedBox(height: 12),
-          Card(
-            child: Column(
-              children: [
-                ListTile(
-                  leading: const Icon(Icons.devices, color: CroenixColors.textSecondary),
-                  title: Text(connectionState?.device?.name ?? AppConstants.deviceName),
-                  subtitle: Text('IP: ${connectionState?.device?.ip ?? "Disconnected"}'),
-                ),
-                const Divider(height: 1),
-                ListTile(
-                  leading: const Icon(Icons.power_settings_new, color: CroenixColors.error),
-                  title: const Text('Disconnect & Change Device'),
-                  onTap: () {
-                    context.go('/connection');
-                  },
-                ),
-              ],
+                  const SizedBox(height: 16),
+
+                  // Storage Settings
+                  _buildSection(
+                    title: 'Storage',
+                    children: [
+                      SettingsTile(
+                        title: 'SD Card',
+                        subtitle: _deviceState.sdCardMounted
+                            ? '${(_deviceState.sdCardUsed / 1024 / 1024).toStringAsFixed(1)} MB / ${(_deviceState.sdCardSize / 1024 / 1024).toStringAsFixed(1)} MB'
+                            : 'Not Mounted',
+                        icon: Icons.sd_card_rounded,
+                        trailing: Icon(
+                          _deviceState.sdCardMounted
+                              ? Icons.check_circle_rounded
+                              : Icons.error_outline_rounded,
+                          color: _deviceState.sdCardMounted
+                              ? CroenixColors.success
+                              : CroenixColors.error,
+                        ),
+                      ),
+                      SettingsTile(
+                        title: 'Browse Files',
+                        subtitle: 'View audio files on SD card',
+                        icon: Icons.folder_rounded,
+                        onTap: () {
+                          // TODO: Navigate to file browser
+                        },
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // System Settings
+                  _buildSection(
+                    title: 'System',
+                    children: [
+                      SettingsTile(
+                        title: 'System Info',
+                        subtitle: 'Uptime: ${_formatUptime(_deviceState.uptime)}',
+                        icon: Icons.info_outline_rounded,
+                      ),
+                      SettingsTile(
+                        title: 'CPU Usage',
+                        subtitle: 'Core 0: ${_deviceState.cpuUsageCore0}% | Core 1: ${_deviceState.cpuUsageCore1}%',
+                        icon: Icons.memory_rounded,
+                      ),
+                      SettingsTile(
+                        title: 'Free Memory',
+                        subtitle: '${(_deviceState.freeHeap / 1024).toStringAsFixed(1)} KB',
+                        icon: Icons.storage_rounded,
+                      ),
+                      SettingsTile(
+                        title: 'Restart Device',
+                        subtitle: 'Reboot the ESP32',
+                        icon: Icons.restart_alt_rounded,
+                        onTap: _showRestartDialog,
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // About
+                  _buildSection(
+                    title: 'About',
+                    children: [
+                      SettingsTile(
+                        title: 'App Version',
+                        subtitle: '1.0.0',
+                        icon: Icons.app_settings_alt_rounded,
+                      ),
+                      SettingsTile(
+                        title: 'Firmware Version',
+                        subtitle: 'ESP32 v1.0.0',
+                        icon: Icons.developer_board_rounded,
+                      ),
+                      SettingsTile(
+                        title: 'Open Source Licenses',
+                        subtitle: 'View licenses',
+                        icon: Icons.code_rounded,
+                        onTap: () {
+                          showLicensePage(context: context);
+                        },
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 100),
+                ]),
+              ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSection({
+    required String title,
+    required List<Widget> children,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+          child: Text(
+            title,
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: CroenixColors.textSecondary,
+              letterSpacing: 0.5,
+            ),
+          ),
+        ),
+        Container(
+          decoration: GlassEffect.standard,
+          child: Column(children: children),
+        ),
+      ],
+    );
+  }
+
+  String _formatUptime(int seconds) {
+    final hours = seconds ~/ 3600;
+    final minutes = (seconds % 3600) ~/ 60;
+    return '${hours}h ${minutes}m';
+  }
+
+  void _showRestartDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Restart Device'),
+        content: const Text(
+          'Are you sure you want to restart the ESP32? This will interrupt audio playback.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              // TODO: Send restart command
+              Navigator.pop(context);
+            },
+            child: const Text('Restart'),
           ),
         ],
       ),
