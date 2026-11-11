@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../core/theme/croenix_colors.dart';
 import '../../data/services/websocket_service.dart';
+import 'wifi_config_portal.dart';
 
 class WiFiSetupDialog extends StatefulWidget {
   const WiFiSetupDialog({super.key});
@@ -158,7 +159,21 @@ class _WiFiSetupDialogState extends State<WiFiSetupDialog> {
                 ),
               ),
             ],
-            const SizedBox(height: 24),
+            const SizedBox(height: 14),
+            Center(
+              child: TextButton.icon(
+                icon: const Icon(Icons.qr_code_2_rounded, color: CroenixColors.primaryCyan, size: 18),
+                label: const Text(
+                  'Open Dynamic QR Code Portal',
+                  style: TextStyle(color: CroenixColors.primaryCyan, fontSize: 13),
+                ),
+                onPressed: () {
+                  Navigator.pop(context);
+                  WiFiConfigPortal.show(context);
+                },
+              ),
+            ),
+            const SizedBox(height: 10),
             Row(
               children: [
                 Expanded(

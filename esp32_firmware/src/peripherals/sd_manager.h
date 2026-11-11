@@ -4,10 +4,13 @@
 #include <Arduino.h>
 #include <SD.h>
 #include <ArduinoJson.h>
-#include "../core/config.h"
+#include "config.h"
 
 // Initialize SD card
 void initSDManager();
+
+// Hardware Diagnostics Integrity Check
+bool checkSDIntegrity();
 
 // SD card status
 bool isSDCardMounted();

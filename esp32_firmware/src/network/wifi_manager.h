@@ -4,7 +4,7 @@
 #include <Arduino.h>
 #include <WiFi.h>
 #include <ESPmDNS.h>
-#include "../core/config.h"
+#include "config.h"
 
 // Initialize Wi-Fi manager
 void initWiFiManager();

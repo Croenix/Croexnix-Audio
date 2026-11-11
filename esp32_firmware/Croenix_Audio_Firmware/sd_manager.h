@@ -9,6 +9,9 @@
 // Initialize SD card
 void initSDManager();
 
+// Hardware Diagnostics Integrity Check
+bool checkSDIntegrity();
+
 // SD card status
 bool isSDCardMounted();
 uint64_t getSDCardSize();

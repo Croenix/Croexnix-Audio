@@ -4,8 +4,11 @@
 #include <Arduino.h>
 #include "config.h"
 
-// Initialize FM radio module
+// Initialize FM radio module (HW-322 / Si4703 / TEA5767)
 void initFMRadio();
+
+// Hardware Diagnostics Integrity Check
+bool checkFMIntegrity();
 
 // FM control functions
 void setFMFrequency(float frequency);

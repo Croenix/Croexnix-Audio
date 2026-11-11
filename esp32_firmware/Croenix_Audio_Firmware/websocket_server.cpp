@@ -78,12 +78,17 @@ void broadcastDeviceState() {
 
         // Bluetooth & SD & FM
         doc["bt_connected"] = g_deviceState.bluetoothConnected;
+        doc["bt_state"] = (int)g_deviceState.bluetoothState;
         doc["bt_device"] = g_deviceState.bluetoothDevice;
         doc["sd_mounted"] = g_deviceState.sdCardMounted;
         doc["sd_size"] = (uint32_t)(g_deviceState.sdCardSize / 1024);
         doc["sd_used"] = (uint32_t)(g_deviceState.sdCardUsed / 1024);
         doc["fm_frequency"] = g_deviceState.fmFrequency;
         doc["fm_rssi"] = g_deviceState.fmSignalStrength;
+        doc["fm_ok"] = g_deviceState.fmOperational;
+        doc["dac_ok"] = g_deviceState.dacOperational;
+        doc["active_screen"] = (int)g_deviceState.activeScreen;
+        doc["diag_module"] = g_deviceState.selectedDiagModule;
 
         xSemaphoreGive(g_stateMutex);
     }
@@ -237,15 +242,21 @@ void handleWiFiConfigCommand(JsonDocument& doc) {
     const char* ssid = doc["ssid"];
     const char* password = doc["password"];
 
+    DEBUG_PRINTF("[WEBSOCKET] Wi-Fi Config received for SSID: %s\n", ssid);
     bool success = connectToWiFi(ssid, password);
 
     StaticJsonDocument<256> response;
     response["type"] = "wifi_config_result";
     response["success"] = success;
+    response["ssid"] = ssid;
+    response["ip"] = getLocalIP();
 
     String output;
     serializeJson(response, output);
     webSocket.broadcastTXT(output);
+
+    broadcastDeviceState();
+    broadcastNetworkInfo();
 }
 
 void handleScanNetworksCommand(JsonDocument& doc) {

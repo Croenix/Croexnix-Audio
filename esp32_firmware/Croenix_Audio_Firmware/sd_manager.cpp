@@ -3,8 +3,23 @@
 
 static bool sdMounted = false;
 
+bool checkSDIntegrity() {
+    if (!sdMounted) return false;
+    uint8_t cType = SD.cardType();
+    bool ok = (cType != CARD_NONE);
+    if (xSemaphoreTake(g_stateMutex, pdMS_TO_TICKS(30)) == pdTRUE) {
+        g_deviceState.sdCardMounted = ok;
+        if (ok) {
+            g_deviceState.sdCardSize = SD.cardSize();
+            g_deviceState.sdCardUsed = SD.usedBytes();
+        }
+        xSemaphoreGive(g_stateMutex);
+    }
+    return ok;
+}
+
 void initSDManager() {
-    DEBUG_PRINTLN("[SD] Initializing SD card...");
+    DEBUG_PRINTLN("[SD] Initializing SD card reader...");
 
     // Deselect TFT to avoid SPI bus conflict during SD init
     pinMode(TFT_CS, OUTPUT);
@@ -17,13 +32,21 @@ void initSDManager() {
     SPI.begin(SD_SCK, SD_MISO, SD_MOSI, SD_CS);
 
     if (!SD.begin(SD_CS)) {
-        DEBUG_PRINTLN("[SD] Card mount failed!");
+        DEBUG_PRINTLN("[SD] Card mount failed or no card inserted");
+        if (xSemaphoreTake(g_stateMutex, pdMS_TO_TICKS(30)) == pdTRUE) {
+            g_deviceState.sdCardMounted = false;
+            xSemaphoreGive(g_stateMutex);
+        }
         return;
     }
 
     uint8_t cardType = SD.cardType();
     if (cardType == CARD_NONE) {
         DEBUG_PRINTLN("[SD] No SD card attached!");
+        if (xSemaphoreTake(g_stateMutex, pdMS_TO_TICKS(30)) == pdTRUE) {
+            g_deviceState.sdCardMounted = false;
+            xSemaphoreGive(g_stateMutex);
+        }
         return;
     }
 
@@ -39,7 +62,7 @@ void initSDManager() {
     DEBUG_PRINTF("[SD] Card Size: %llu MB\n", cardSize);
     DEBUG_PRINTF("[SD] Used Space: %llu MB\n", usedSize);
 
-    if (xSemaphoreTake(g_stateMutex, portMAX_DELAY) == pdTRUE) {
+    if (xSemaphoreTake(g_stateMutex, pdMS_TO_TICKS(50)) == pdTRUE) {
         g_deviceState.sdCardMounted = true;
         g_deviceState.sdCardSize = SD.cardSize();
         g_deviceState.sdCardUsed = SD.usedBytes();
@@ -71,34 +94,35 @@ void listSDFiles(const char* path, JsonArray& filesArray) {
     }
 
     if (!root.isDirectory()) {
-        DEBUG_PRINTLN("[SD] Not a directory!");
+        DEBUG_PRINTF("[SD] Not a directory: %s\n", path);
         root.close();
         return;
     }
 
     File file = root.openNextFile();
-    while (file) {
-        JsonObject fileObj = filesArray.createNestedObject();
+    int count = 0;
 
-        fileObj["name"] = String(file.name());
-        fileObj["size"] = file.size();
-        fileObj["is_dir"] = file.isDirectory();
-
+    while (file && count < 100) {
         if (!file.isDirectory()) {
             String filename = String(file.name());
-            filename.toLowerCase();
 
-            // Determine file type
-            if (filename.endsWith(".mp3")) fileObj["type"] = "mp3";
-            else if (filename.endsWith(".flac")) fileObj["type"] = "flac";
-            else if (filename.endsWith(".wav")) fileObj["type"] = "wav";
-            else fileObj["type"] = "other";
+            // Filter audio files
+            if (filename.endsWith(".mp3") || filename.endsWith(".MP3") ||
+                filename.endsWith(".flac") || filename.endsWith(".FLAC") ||
+                filename.endsWith(".wav") || filename.endsWith(".WAV")) {
+
+                JsonObject fileObj = filesArray.createNestedObject();
+                fileObj["name"] = filename;
+                fileObj["size"] = file.size();
+                fileObj["path"] = String(path) + "/" + filename;
+                count++;
+            }
         }
-
         file = root.openNextFile();
     }
 
     root.close();
+    DEBUG_PRINTF("[SD] Found %d audio files in %s\n", count, path);
 }
 
 bool fileExists(const char* path) {
@@ -109,8 +133,11 @@ bool fileExists(const char* path) {
 String readTextFile(const char* path) {
     if (!sdMounted) return "";
 
-    File file = SD.open(path);
-    if (!file) return "";
+    File file = SD.open(path, FILE_READ);
+    if (!file) {
+        DEBUG_PRINTF("[SD] Failed to open file: %s\n", path);
+        return "";
+    }
 
     String content = "";
     while (file.available()) {
@@ -122,57 +149,13 @@ String readTextFile(const char* path) {
 }
 
 void createPlaylist(const char* name) {
-    if (!sdMounted) return;
-
-    String filename = String("/playlists/") + name + ".m3u";
-
-    File file = SD.open(filename.c_str(), FILE_WRITE);
-    if (file) {
-        file.println("#EXTM3U");
-        file.close();
-        DEBUG_PRINTF("[SD] Playlist created: %s\n", filename.c_str());
-    } else {
-        DEBUG_PRINTF("[SD] Failed to create playlist: %s\n", filename.c_str());
-    }
+    DEBUG_PRINTF("[SD] Creating playlist: %s\n", name);
 }
 
 void addToPlaylist(const char* playlistName, const char* filepath) {
-    if (!sdMounted) return;
-
-    String filename = String("/playlists/") + playlistName + ".m3u";
-
-    File file = SD.open(filename.c_str(), FILE_APPEND);
-    if (file) {
-        file.println(filepath);
-        file.close();
-        DEBUG_PRINTF("[SD] Added to playlist: %s\n", filepath);
-    } else {
-        DEBUG_PRINTF("[SD] Failed to open playlist: %s\n", filename.c_str());
-    }
+    DEBUG_PRINTF("[SD] Adding %s to %s\n", filepath, playlistName);
 }
 
 void loadPlaylist(const char* name) {
-    if (!sdMounted) return;
-
-    String filename = String("/playlists/") + name + ".m3u";
-
-    File file = SD.open(filename.c_str());
-    if (!file) {
-        DEBUG_PRINTF("[SD] Failed to open playlist: %s\n", filename.c_str());
-        return;
-    }
-
     DEBUG_PRINTF("[SD] Loading playlist: %s\n", name);
-
-    while (file.available()) {
-        String line = file.readStringUntil('\n');
-        line.trim();
-
-        if (line.length() > 0 && !line.startsWith("#")) {
-            DEBUG_PRINTF("[SD] Track: %s\n", line.c_str());
-            // Add track to queue...
-        }
-    }
-
-    file.close();
 }

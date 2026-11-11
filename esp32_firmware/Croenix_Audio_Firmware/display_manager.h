@@ -8,12 +8,13 @@
 // Initialize display and run animated boot sequence
 void initDisplayManager();
 
-// Update display with current state (flicker-free dirty updates)
+// Update display with non-blocking state machine
 void updateDisplay();
 
 // Screen views
 void showSplashScreen();
 void showMainScreen();
+void showHardwareDiagnosticsScreen();
 
 // Custom graphical draw helpers
 void drawModernProgressBar(int x, int y, int width, int height, float progress, uint16_t color, uint16_t bgColor);

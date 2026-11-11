@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../../core/theme/croenix_colors.dart';
 import '../../data/services/websocket_service.dart';
 import '../../data/models/device_state.dart';
-import 'wifi_setup_dialog.dart';
+import 'wifi_config_portal.dart';
 import 'widgets/settings_tile.dart';
 import 'widgets/info_card.dart';
 
@@ -331,10 +331,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         icon: Icons.signal_cellular_alt_rounded,
                       ),
                       SettingsTile(
-                        title: 'Configure Wi-Fi',
-                        subtitle: 'Change Wi-Fi SSID and Password',
-                        icon: Icons.settings_ethernet_rounded,
-                        onTap: () => WiFiSetupDialog.show(context),
+                        title: 'Configure Wi-Fi Portal',
+                        subtitle: 'Dynamic QR Code & Hotspot Mode Switch',
+                        icon: Icons.qr_code_2_rounded,
+                        onTap: () => WiFiConfigPortal.show(context),
                       ),
                     ],
                   ),

@@ -4,7 +4,7 @@
 #include <Arduino.h>
 #include <WebSocketsServer.h>
 #include <ArduinoJson.h>
-#include "../core/config.h"
+#include "config.h"
 
 // Initialize WebSocket server
 void initWebSocketServer();

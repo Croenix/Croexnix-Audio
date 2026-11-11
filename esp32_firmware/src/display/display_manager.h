@@ -3,23 +3,22 @@
 
 #include <Arduino.h>
 #include <TFT_eSPI.h>
-#include "../core/config.h"
+#include "config.h"
 
-// Initialize display
+// Initialize display and run animated boot sequence
 void initDisplayManager();
 
-// Update display with current state
+// Update display with non-blocking state machine
 void updateDisplay();
 
-// Display screens
+// Screen views
 void showSplashScreen();
 void showMainScreen();
-void showSourceScreen();
-void showVolumeScreen();
-void showNetworkScreen();
+void showHardwareDiagnosticsScreen();
 
-// Helper functions
-void drawProgressBar(int x, int y, int width, int height, float progress);
-void drawVUMeter(int x, int y, int width, int height, uint8_t level);
+// Custom graphical draw helpers
+void drawModernProgressBar(int x, int y, int width, int height, float progress, uint16_t color, uint16_t bgColor);
+void drawAudioVisualizer(int x, int y, int width, int height, bool isPlaying);
+void drawVolumeHUD(uint8_t volume);
 
 #endif // DISPLAY_MANAGER_H
