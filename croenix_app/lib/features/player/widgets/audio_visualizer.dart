@@ -51,7 +51,7 @@ class _VisualizerPainter extends CustomPainter {
     // Draw background gradient
     final bgRect = Rect.fromLTWH(0, 0, size.width, size.height);
     const bgGradient = RadialGradient(
-      colors: const [
+      colors: [
         CroenixColors.darkSurface,
         CroenixColors.darkBackground,
       ],
@@ -80,7 +80,7 @@ class _VisualizerPainter extends CustomPainter {
 
     // Draw spectrum bars
     const barCount = 40;
-    final angleStep = (2 * math.pi) / barCount;
+    const angleStep = (2 * math.pi) / barCount;
     final innerRadius = maxRadius * 0.4;
     final maxBarHeight = maxRadius * 0.35;
 
@@ -99,7 +99,7 @@ class _VisualizerPainter extends CustomPainter {
       final endY = center.dy + math.sin(angle) * (innerRadius + barHeight);
 
       const gradient = LinearGradient(
-        colors: const [
+        colors: [
           CroenixColors.spectrumLow,
           CroenixColors.spectrumMid,
           CroenixColors.spectrumHigh,

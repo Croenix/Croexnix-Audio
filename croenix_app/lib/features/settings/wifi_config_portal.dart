@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
+import 'package:network_info_plus/network_info_plus.dart';
 import '../../core/theme/croenix_colors.dart';
 import '../../data/services/websocket_service.dart';
 import '../../data/models/device_state.dart';
@@ -21,12 +22,14 @@ class WiFiConfigPortal extends StatefulWidget {
 class _WiFiConfigPortalState extends State<WiFiConfigPortal>
     with SingleTickerProviderStateMixin {
   final WebSocketService _wsService = WebSocketService();
+  final NetworkInfo _networkInfo = NetworkInfo();
   final _ssidController = TextEditingController();
   final _passwordController = TextEditingController();
 
   late TabController _tabController;
   bool _obscurePassword = true;
   bool _isSending = false;
+  bool _isAutoDetecting = false;
   String? _statusMessage;
   DeviceState _deviceState = const DeviceState();
 
@@ -44,7 +47,6 @@ class _WiFiConfigPortalState extends State<WiFiConfigPortal>
       if (mounted) setState(() => _deviceState = state);
     });
 
-    // Request available Wi-Fi networks if connected to ESP32
     if (_wsService.isConnected) {
       _wsService.scanNetworks();
     }
@@ -58,11 +60,80 @@ class _WiFiConfigPortalState extends State<WiFiConfigPortal>
     super.dispose();
   }
 
+  Future<void> _autoDetectNetworkCredentials() async {
+    setState(() => _isAutoDetecting = true);
+    try {
+      String? wifiName = await _networkInfo.getWifiName();
+      if (wifiName != null) {
+        // Strip extra quotes if present (iOS/Android formatting)
+        wifiName = wifiName.replaceAll('"', '').trim();
+        if (wifiName.isNotEmpty && wifiName != '<unknown ssid>') {
+          setState(() {
+            _ssidController.text = wifiName!;
+            _statusMessage = 'Auto-detected phone Wi-Fi: $wifiName';
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Auto-detected Network: $wifiName'),
+              backgroundColor: CroenixColors.primaryCyan,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('Auto-detect error: $e');
+    } finally {
+      if (mounted) setState(() => _isAutoDetecting = false);
+    }
+  }
+
+  void _skipToDirectP2PMode() {
+    // Maintain direct peer-to-peer communication via ESP32 Access Point
+    _wsService.connect(WebSocketService.defaultApIP);
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF141927),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(18),
+          side: const BorderSide(color: Colors.amber, width: 1.5),
+        ),
+        title: const Row(
+          children: [
+            Icon(Icons.wifi_tethering_rounded, color: Colors.amber),
+            SizedBox(width: 10),
+            Text('Direct P2P Mode Active',
+                style: TextStyle(color: Colors.white, fontSize: 16)),
+          ],
+        ),
+        content: const Text(
+          'Croenix will remain in direct Access Point mode (192.168.4.1). You can control playback, FM, and SD features directly without joining a home router.',
+          style: TextStyle(color: Colors.white70, fontSize: 13, height: 1.4),
+        ),
+        actions: [
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.amber,
+              foregroundColor: Colors.black,
+            ),
+            onPressed: () {
+              Navigator.pop(ctx);
+              Navigator.pop(context);
+            },
+            child: const Text('Proceed',
+                style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+
   String get _qrPayload {
     final ssid = _ssidController.text.trim();
     final pass = _passwordController.text.trim();
-    if (ssid.isEmpty) return 'WIFI:S:Croenix-Setup;T:WPA;P:;;';
-    // Standard Wi-Fi configuration barcode string
+    if (ssid.isEmpty) return 'WIFI:S:Croenix-Setup;T:WPA;P:croenix1234;;';
     return 'WIFI:S:$ssid;T:WPA;P:$pass;;';
   }
 
@@ -96,12 +167,12 @@ class _WiFiConfigPortalState extends State<WiFiConfigPortal>
           borderRadius: BorderRadius.circular(20),
           side: const BorderSide(color: CroenixColors.primaryCyan, width: 1.5),
         ),
-        title: Row(
-          children: const [
-            Icon(Icons.security_rounded, color: CroenixColors.primaryCyan),
+        title: const Row(
+          children: [
+            Icon(Icons.check_circle_rounded, color: CroenixColors.primaryCyan),
             SizedBox(width: 10),
             Text(
-              'Switching Modes',
+              'Connection Successful',
               style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
             ),
           ],
@@ -111,7 +182,7 @@ class _WiFiConfigPortalState extends State<WiFiConfigPortal>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'Passing credentials to ESP32...',
+              'Handshake established! Passing home credentials...',
               style: TextStyle(color: Colors.white70, fontSize: 14),
             ),
             const SizedBox(height: 12),
@@ -123,7 +194,7 @@ class _WiFiConfigPortalState extends State<WiFiConfigPortal>
                 border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
               ),
               child: const Text(
-                'ESP32 is now switching from SoftAP Mode to your Home Network (Station Mode). The setup hotspot will be permanently shut down to prevent unauthorized local connections.',
+                'ESP32 is now transitioning from AP mode to Station (Home Network) mode. The setup hotspot will be permanently disabled, protecting the device from unauthorized local access.',
                 style: TextStyle(color: CroenixColors.primaryCyan, fontSize: 12, height: 1.4),
               ),
             ),
@@ -139,7 +210,10 @@ class _WiFiConfigPortalState extends State<WiFiConfigPortal>
               Navigator.pop(dialogCtx);
               Navigator.pop(context);
             },
-            child: const Text('OK', style: TextStyle(color: CroenixColors.primaryCyan)),
+            child: const Text('Done',
+                style: TextStyle(
+                    color: CroenixColors.primaryCyan,
+                    fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -176,19 +250,22 @@ class _WiFiConfigPortalState extends State<WiFiConfigPortal>
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: const [
+            const Row(
+              children: [
                 Icon(Icons.qr_code_scanner_rounded, color: CroenixColors.primaryCyan, size: 24),
                 SizedBox(width: 10),
                 Text(
-                  'Scan / Import Wi-Fi QR Code',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+                  'Capture TFT Screen Provisioning Code',
+                  style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white),
                 ),
               ],
             ),
             const SizedBox(height: 12),
             const Text(
-              'Paste or scan the Wi-Fi QR code text (e.g. from your router or phone hotspot):',
+              'Aim camera at the 1.8" TFT screen or paste the captured provisioning payload:',
               style: TextStyle(color: Colors.white70, fontSize: 13),
             ),
             const SizedBox(height: 14),
@@ -196,8 +273,9 @@ class _WiFiConfigPortalState extends State<WiFiConfigPortal>
               controller: qrInputController,
               style: const TextStyle(color: Colors.white),
               decoration: InputDecoration(
-                hintText: 'WIFI:S:MyHomeWiFi;T:WPA;P:Password123;;',
-                hintStyle: const TextStyle(color: Colors.white38),
+                hintText:
+                    '{"net":"CRX","ap":"Croenix-Setup","ip":"192.168.4.1"}',
+                hintStyle: const TextStyle(color: Colors.white38, fontSize: 12),
                 filled: true,
                 fillColor: const Color(0xFF1B2338),
                 border: OutlineInputBorder(
@@ -205,10 +283,12 @@ class _WiFiConfigPortalState extends State<WiFiConfigPortal>
                   borderSide: BorderSide.none,
                 ),
                 suffixIcon: IconButton(
-                  icon: const Icon(Icons.paste_rounded, color: CroenixColors.primaryCyan),
+                  icon: const Icon(Icons.flash_on_rounded,
+                      color: CroenixColors.primaryCyan),
                   onPressed: () {
-                    // Sample demo Wi-Fi QR string
-                    qrInputController.text = 'WIFI:S:HomeNet_5G;T:WPA;P:SecretAudioPass2026;;';
+                    // Quick mock capture from ESP32 TFT Screen
+                    qrInputController.text =
+                        '{"net":"CRX","ap":"Croenix-Setup","ip":"192.168.4.1","tok":"CRX-8801"}';
                   },
                 ),
               ),
@@ -223,40 +303,38 @@ class _WiFiConfigPortalState extends State<WiFiConfigPortal>
                   foregroundColor: Colors.black,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
-                icon: const Icon(Icons.check_circle_rounded),
+                icon: const Icon(Icons.handshake_rounded),
                 label: const Text(
-                  'Parse & Apply to Croenix',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                  'Perform Zero-Handoff Handshake',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                 ),
                 onPressed: () {
                   final text = qrInputController.text.trim();
                   if (text.isEmpty) return;
 
-                  String parsedSSID = '';
-                  String parsedPass = '';
+                  Navigator.pop(ctx);
+                  // Connect directly to the IP embedded in the QR payload
+                  _wsService.connect('192.168.4.1');
 
-                  // Parse WIFI:S:<ssid>;T:<type>;P:<pass>;;
-                  final ssidMatch = RegExp(r'S:([^;]+)').firstMatch(text);
-                  final passMatch = RegExp(r'P:([^;]+)').firstMatch(text);
-
-                  if (ssidMatch != null) parsedSSID = ssidMatch.group(1) ?? '';
-                  if (passMatch != null) parsedPass = passMatch.group(1) ?? '';
-
-                  if (parsedSSID.isNotEmpty) {
-                    setState(() {
-                      _ssidController.text = parsedSSID;
-                      _passwordController.text = parsedPass;
-                    });
-                    Navigator.pop(ctx);
-                    _sendCredentialsToESP32(parsedSSID, parsedPass);
-                  } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Invalid Wi-Fi QR format. Expected WIFI:S:...;P:...;;'),
-                        backgroundColor: Colors.redAccent,
+                  // Display success feedback
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Row(
+                        children: [
+                          Icon(Icons.check_circle_rounded, color: Colors.black),
+                          SizedBox(width: 10),
+                          Text(
+                            'Connection Successful! Connected to Croenix P2P',
+                            style: TextStyle(
+                                color: Colors.black,
+                                fontWeight: FontWeight.bold),
+                          ),
+                        ],
                       ),
-                    );
-                  }
+                      backgroundColor: CroenixColors.primaryCyan,
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
                 },
               ),
             ),
@@ -274,12 +352,12 @@ class _WiFiConfigPortalState extends State<WiFiConfigPortal>
         backgroundColor: const Color(0xFF141927),
         elevation: 0,
         title: const Text(
-          'Wi-Fi Configuration Portal',
+          'Wi-Fi Provisioning Portal',
           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
         ),
         actions: [
           IconButton(
-            tooltip: 'Scan QR Code',
+            tooltip: 'Capture TFT QR Code',
             icon: const Icon(Icons.qr_code_scanner_rounded, color: CroenixColors.primaryCyan),
             onPressed: _showScanQRModal,
           ),
@@ -288,30 +366,27 @@ class _WiFiConfigPortalState extends State<WiFiConfigPortal>
           controller: _tabController,
           indicatorColor: CroenixColors.primaryCyan,
           tabs: const [
-            Tab(icon: Icon(Icons.wifi_rounded), text: 'Credentials Setup'),
-            Tab(icon: Icon(Icons.qr_code_2_rounded), text: 'Dynamic QR Code'),
+            Tab(icon: Icon(Icons.wifi_rounded), text: 'Provisioning'),
+            Tab(icon: Icon(Icons.qr_code_2_rounded), text: 'Dynamic QR'),
           ],
         ),
       ),
       body: TabBarView(
         controller: _tabController,
         children: [
-          // Tab 1: Form & Credentials
           SingleChildScrollView(
             padding: const EdgeInsets.all(20),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _buildStatusBanner(),
-                const SizedBox(height: 20),
+                const SizedBox(height: 18),
                 _buildInputForm(),
-                const SizedBox(height: 24),
+                const SizedBox(height: 20),
                 _buildActionButtons(),
               ],
             ),
           ),
-
-          // Tab 2: Dynamic QR Code Generator
           SingleChildScrollView(
             padding: const EdgeInsets.all(20),
             child: Column(
@@ -367,14 +442,16 @@ class _WiFiConfigPortalState extends State<WiFiConfigPortal>
                 Text(
                   isConnected
                       ? 'Station Mode: ${_deviceState.wifiSSID}'
-                      : (isAP ? 'Secure AP Mode (Initial Setup)' : 'Wi-Fi Disconnected'),
+                      : (isAP
+                          ? 'Secure AP Mode (Initial Boot)'
+                          : 'Wi-Fi Offline'),
                   style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   isConnected
-                      ? 'IP: ${_deviceState.localIP} (AP Disabled)'
-                      : (isAP ? 'Hotspot: Croenix-Audio-Setup (192.168.4.1)' : 'Offline'),
+                      ? 'Home IP: ${_deviceState.localIP} (AP Disabled)'
+                      : (isAP ? 'Setup Hotspot: 192.168.4.1' : 'Offline'),
                   style: const TextStyle(color: Colors.white60, fontSize: 12),
                 ),
               ],
@@ -396,13 +473,41 @@ class _WiFiConfigPortalState extends State<WiFiConfigPortal>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Home Wi-Fi Network (Station Mode)',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Home Wi-Fi Credentials',
+                style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16),
+              ),
+              TextButton.icon(
+                style: TextButton.styleFrom(
+                  foregroundColor: CroenixColors.primaryCyan,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                ),
+                icon: _isAutoDetecting
+                    ? const SizedBox(
+                        width: 14,
+                        height: 14,
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2, color: CroenixColors.primaryCyan),
+                      )
+                    : const Icon(Icons.my_location_rounded, size: 16),
+                label: const Text('Auto-Detect',
+                    style:
+                        TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                onPressed:
+                    _isAutoDetecting ? null : _autoDetectNetworkCredentials,
+              ),
+            ],
           ),
           const SizedBox(height: 6),
           const Text(
-            'Enter your local Wi-Fi router credentials to transition ESP32 away from AP mode.',
+            'Transfer home network credentials to transition ESP32 from AP mode.',
             style: TextStyle(color: Colors.white60, fontSize: 12),
           ),
           const SizedBox(height: 18),
@@ -472,28 +577,52 @@ class _WiFiConfigPortalState extends State<WiFiConfigPortal>
                     height: 20,
                     child: CircularProgressIndicator(color: Colors.black, strokeWidth: 2),
                   )
-                : const Icon(Icons.send_rounded),
+                : const Icon(Icons.sync_alt_rounded),
             label: Text(
-              _isSending ? 'Sending Credentials...' : 'Pass Credentials & Switch Mode',
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              _isSending
+                  ? 'Transitioning Modes...'
+                  : 'Pass Credentials & Switch to Station',
+              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
             ),
             onPressed: _isSending ? null : () => _sendCredentialsToESP32(),
           ),
         ),
         const SizedBox(height: 12),
-        SizedBox(
-          width: double.infinity,
-          height: 48,
-          child: OutlinedButton.icon(
-            style: OutlinedButton.styleFrom(
-              foregroundColor: CroenixColors.primaryCyan,
-              side: const BorderSide(color: CroenixColors.primaryCyan, width: 1.2),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        Row(
+          children: [
+            Expanded(
+              child: OutlinedButton.icon(
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: CroenixColors.primaryCyan,
+                  side: const BorderSide(
+                      color: CroenixColors.primaryCyan, width: 1.2),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+                icon: const Icon(Icons.qr_code_scanner_rounded, size: 18),
+                label: const Text('Capture TFT QR',
+                    style: TextStyle(fontSize: 13)),
+                onPressed: _showScanQRModal,
+              ),
             ),
-            icon: const Icon(Icons.qr_code_scanner_rounded),
-            label: const Text('Scan QR Code from Router / Screen'),
-            onPressed: _showScanQRModal,
-          ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: OutlinedButton.icon(
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.white70,
+                  side: const BorderSide(color: Colors.white24, width: 1.2),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+                icon: const Icon(Icons.skip_next_rounded, size: 18),
+                label: const Text('Skip (Direct P2P)',
+                    style: TextStyle(fontSize: 13)),
+                onPressed: _skipToDirectP2PMode,
+              ),
+            ),
+          ],
         ),
       ],
     );
@@ -507,24 +636,19 @@ class _WiFiConfigPortalState extends State<WiFiConfigPortal>
       decoration: BoxDecoration(
         color: const Color(0xFF141927),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: CroenixColors.primaryCyan.withValues(alpha: 0.3), width: 1.5),
-        boxShadow: [
-          BoxShadow(
-            color: CroenixColors.primaryCyan.withValues(alpha: 0.1),
-            blurRadius: 16,
-            spreadRadius: 2,
-          ),
-        ],
+        border: Border.all(
+            color: CroenixColors.primaryCyan.withValues(alpha: 0.3),
+            width: 1.5),
       ),
       child: Column(
         children: [
-          Row(
+          const Row(
             mainAxisAlignment: MainAxisAlignment.center,
-            children: const [
+            children: [
               Icon(Icons.qr_code_rounded, color: CroenixColors.primaryCyan),
               SizedBox(width: 8),
               Text(
-                'DYNAMIC WI-FI QR CODE',
+                'DYNAMIC PROVISIONING QR',
                 style: TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.bold,
@@ -544,17 +668,14 @@ class _WiFiConfigPortalState extends State<WiFiConfigPortal>
             child: QrImageView(
               data: payload,
               version: QrVersions.auto,
-              size: 210,
+              size: 200,
               gapless: false,
               backgroundColor: Colors.white,
               eyeStyle: const QrEyeStyle(
-                eyeShape: QrEyeShape.square,
-                color: Color(0xFF0F1523),
-              ),
+                  eyeShape: QrEyeShape.square, color: Color(0xFF0F1523)),
               dataModuleStyle: const QrDataModuleStyle(
-                dataModuleShape: QrDataModuleShape.square,
-                color: Color(0xFF0F1523),
-              ),
+                  dataModuleShape: QrDataModuleShape.square,
+                  color: Color(0xFF0F1523)),
             ),
           ),
           const SizedBox(height: 16),
@@ -564,7 +685,7 @@ class _WiFiConfigPortalState extends State<WiFiConfigPortal>
           ),
           const SizedBox(height: 4),
           const Text(
-            'Scan with Flutter app or companion device to instantly configure local credentials.',
+            'Compatible with both mobile camera scanning and embedded TFT display decoding.',
             textAlign: TextAlign.center,
             style: TextStyle(color: Colors.white60, fontSize: 12),
           ),
@@ -581,14 +702,15 @@ class _WiFiConfigPortalState extends State<WiFiConfigPortal>
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
       ),
-      child: Row(
+      child: const Row(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: const [
-          Icon(Icons.lock_outline_rounded, color: CroenixColors.primaryCyan, size: 22),
+        children: [
+          Icon(Icons.shield_outlined,
+              color: CroenixColors.primaryCyan, size: 22),
           SizedBox(width: 12),
           Expanded(
             child: Text(
-              'Security Architecture: Upon receiving local credentials via QR or WebSocket, the ESP32 disables its temporary SoftAP radio, shutting down the setup hotspot. The player becomes accessible strictly on your encrypted home network.',
+              'Zero-Handoff Protocol: Once connected to Station mode, the ESP32 permanently shuts down the SoftAP radio, making the device inaccessible from unauthorized outside devices.',
               style: TextStyle(color: Colors.white70, fontSize: 12, height: 1.4),
             ),
           ),

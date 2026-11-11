@@ -1,6 +1,7 @@
 #include "audio_manager.h"
 #include "Audio.h"
-#include "../core/device_state.h"
+#include "device_state.h"
+#include "sd_manager.h"
 
 // Audio library instance (ESP32-audioI2S)
 Audio audio;
@@ -10,30 +11,52 @@ static bool audioInitialized = false;
 static AudioSource activeSource = SOURCE_NONE;
 
 void initAudioManager() {
-    DEBUG_PRINTLN("[AUDIO] Initializing I2S audio subsystem...");
+    DEBUG_PRINTLN("[AUDIO] Initializing I2S audio subsystem (WCMCU / TI PCM5102A)...");
 
-    // Configure I2S pins
+    // Configure I2S pins: BCK=GPIO26, LRC=GPIO25, DOUT=GPIO27
     audio.setPinout(I2S_BCLK, I2S_LRC, I2S_DOUT);
 
-    // Set initial volume (0-21)
-    audio.setVolume(12);
+    // Set initial volume (0-21 mapped from 0-100)
+    uint8_t mappedVol = map(g_deviceState.volume, 0, 100, 0, 21);
+    audio.setVolume(mappedVol);
 
     // Configure audio quality
-    audio.forceMono(false);  // Keep stereo
+    audio.forceMono(false);  // High-Fidelity Stereo
     audio.setTone(0, 0, 0);  // Flat EQ by default
 
     audioInitialized = true;
+    activeSource = g_deviceState.currentSource;
 
     DEBUG_PRINTLN("[AUDIO] I2S initialized successfully");
-    DEBUG_PRINTF("[AUDIO] Sample Rate: %d Hz, Bits: %d, Channels: %d\n",
-                 AUDIO_SAMPLE_RATE, AUDIO_BITS_PER_SAMPLE, AUDIO_CHANNELS);
+    DEBUG_PRINTF("[AUDIO] BCLK=%d, LRC=%d, DOUT=%d, Initial Volume=%d/21\n",
+                 I2S_BCLK, I2S_LRC, I2S_DOUT, mappedVol);
 }
 
 void updateAudioPipeline() {
     if (!audioInitialized) return;
 
-    // Process audio loop (handles buffering, decoding, DMA)
-    audio.loop();
+    // Pump audio decoding & I2S DMA streaming
+    if (activeSource == SOURCE_SD_CARD) {
+        if (g_spiMutex && xSemaphoreTake(g_spiMutex, pdMS_TO_TICKS(15)) == pdTRUE) {
+            digitalWrite(TFT_CS, HIGH); // Ensure TFT is not listening to SPI
+            for (int i = 0; i < 4; i++) {
+                audio.loop();
+                if (!audio.isRunning()) break;
+            }
+            digitalWrite(SD_CS, HIGH); // Deselect SD
+            xSemaphoreGive(g_spiMutex);
+        } else {
+            for (int i = 0; i < 2; i++) {
+                audio.loop();
+                if (!audio.isRunning()) break;
+            }
+        }
+    } else {
+        for (int i = 0; i < 4; i++) {
+            audio.loop();
+            if (!audio.isRunning()) break;
+        }
+    }
 
     // Update state if playing
     if (audio.isRunning()) {
@@ -41,17 +64,29 @@ void updateAudioPipeline() {
             g_deviceState.isPlaying = true;
             g_deviceState.trackPosition = audio.getAudioCurrentTime();
             g_deviceState.trackDuration = audio.getAudioFileDuration();
-
             xSemaphoreGive(g_stateMutex);
         }
     }
 }
 
 void playAudio() {
-    if (audioInitialized && !audio.isRunning()) {
-        audio.pauseResume();
-        setPlaying(true);
-        DEBUG_PRINTLN("[AUDIO] Playback started");
+    if (!audioInitialized) return;
+
+    if (activeSource == SOURCE_SD_CARD) {
+        if (!audio.isRunning()) {
+            if (getSDTotalTracks() > 0) {
+                playSDTrack(g_deviceState.sdCurrentTrack);
+            } else {
+                audio.pauseResume();
+                setPlaying(true);
+            }
+        }
+    } else {
+        if (!audio.isRunning()) {
+            audio.pauseResume();
+            setPlaying(true);
+            DEBUG_PRINTLN("[AUDIO] Playback started");
+        }
     }
 }
 
@@ -72,13 +107,17 @@ void stopAudio() {
 }
 
 void nextTrack() {
-    // Handled by SD manager or playlist logic
     DEBUG_PRINTLN("[AUDIO] Next track requested");
+    if (activeSource == SOURCE_SD_CARD) {
+        playNextSDTrack();
+    }
 }
 
 void previousTrack() {
-    // Handled by SD manager or playlist logic
     DEBUG_PRINTLN("[AUDIO] Previous track requested");
+    if (activeSource == SOURCE_SD_CARD) {
+        playPrevSDTrack();
+    }
 }
 
 void setMasterVolume(uint8_t volume) {
@@ -92,7 +131,7 @@ void setMasterVolume(uint8_t volume) {
     }
 
     setVolume(volume);
-    DEBUG_PRINTF("[AUDIO] Volume set to %d%%\n", volume);
+    DEBUG_PRINTF("[AUDIO] Volume set to %d%% (I2S Gain: %d/21)\n", volume, mappedVolume);
 }
 
 uint8_t getMasterVolume() {
@@ -108,6 +147,15 @@ bool switchAudioSource(AudioSource source) {
     // Update active source
     activeSource = source;
     setAudioSource(source);
+
+    if (source == SOURCE_SD_CARD) {
+        if (!isSDCardMounted()) {
+            mountSDCard();
+        }
+        if (isSDCardMounted() && getSDTotalTracks() > 0) {
+            playSDTrack(g_deviceState.sdCurrentTrack);
+        }
+    }
 
     return true;
 }
@@ -159,7 +207,15 @@ bool loadMP3File(const char* filepath) {
 
     DEBUG_PRINTF("[AUDIO] Loading MP3: %s\n", filepath);
 
-    bool success = audio.connecttoFS(SD, filepath);
+    bool success = false;
+    if (g_spiMutex && xSemaphoreTake(g_spiMutex, pdMS_TO_TICKS(150)) == pdTRUE) {
+        digitalWrite(TFT_CS, HIGH);
+        success = audio.connecttoFS(SD, filepath);
+        digitalWrite(SD_CS, HIGH);
+        xSemaphoreGive(g_spiMutex);
+    } else {
+        success = audio.connecttoFS(SD, filepath);
+    }
 
     if (success) {
         switchAudioSource(SOURCE_SD_CARD);
@@ -176,7 +232,15 @@ bool loadFLACFile(const char* filepath) {
 
     DEBUG_PRINTF("[AUDIO] Loading FLAC: %s\n", filepath);
 
-    bool success = audio.connecttoFS(SD, filepath);
+    bool success = false;
+    if (g_spiMutex && xSemaphoreTake(g_spiMutex, pdMS_TO_TICKS(150)) == pdTRUE) {
+        digitalWrite(TFT_CS, HIGH);
+        success = audio.connecttoFS(SD, filepath);
+        digitalWrite(SD_CS, HIGH);
+        xSemaphoreGive(g_spiMutex);
+    } else {
+        success = audio.connecttoFS(SD, filepath);
+    }
 
     if (success) {
         switchAudioSource(SOURCE_SD_CARD);
@@ -193,7 +257,15 @@ bool loadWAVFile(const char* filepath) {
 
     DEBUG_PRINTF("[AUDIO] Loading WAV: %s\n", filepath);
 
-    bool success = audio.connecttoFS(SD, filepath);
+    bool success = false;
+    if (g_spiMutex && xSemaphoreTake(g_spiMutex, pdMS_TO_TICKS(150)) == pdTRUE) {
+        digitalWrite(TFT_CS, HIGH);
+        success = audio.connecttoFS(SD, filepath);
+        digitalWrite(SD_CS, HIGH);
+        xSemaphoreGive(g_spiMutex);
+    } else {
+        success = audio.connecttoFS(SD, filepath);
+    }
 
     if (success) {
         switchAudioSource(SOURCE_SD_CARD);
@@ -252,8 +324,6 @@ void audio_info(const char *info) {
 void audio_id3data(const char *info) {
     DEBUG_PRINTF("[AUDIO ID3] %s\n", info);
 
-    // Parse ID3 tags and update metadata
-    // Format: "Title=Song Name" or "Artist=Artist Name"
     String data = String(info);
 
     if (data.startsWith("Title=")) {
@@ -271,8 +341,12 @@ void audio_id3data(const char *info) {
 }
 
 void audio_eof_mp3(const char *info) {
-    DEBUG_PRINTLN("[AUDIO] End of file");
-    setPlaying(false);
+    DEBUG_PRINTLN("[AUDIO] End of track reached - advancing to next track");
+    if (activeSource == SOURCE_SD_CARD) {
+        playNextSDTrack();
+    } else {
+        setPlaying(false);
+    }
 }
 
 void audio_bitrate(const char *info) {

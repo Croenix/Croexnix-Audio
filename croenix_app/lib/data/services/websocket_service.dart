@@ -232,11 +232,21 @@ class WebSocketService {
   void play() => sendCommand('play');
   void pause() => sendCommand('pause');
   void stop() => sendCommand('stop');
+  void nextTrack() => sendCommand('next_track');
+  void previousTrack() => sendCommand('prev_track');
 
-  void setVolume(int volume) => sendCommand('volume', {'value': volume});
+  void setVolume(int volume) {
+    // Optimistic local state update for zero UI latency
+    _currentState = _currentState.copyWith(volume: volume);
+    _stateController.add(_currentState);
+    sendCommand('volume', {'value': volume});
+  }
 
-  void setSource(AudioSource source) =>
-      sendCommand('source', {'value': source.index});
+  void setSource(AudioSource source) {
+    _currentState = _currentState.copyWith(currentSource: source);
+    _stateController.add(_currentState);
+    sendCommand('source', {'value': source.index});
+  }
 
   void setEQPreset(int preset) => sendCommand('eq', {'value': preset});
 
@@ -254,8 +264,14 @@ class WebSocketService {
       sendCommand('load_file', {'path': filepath});
 
   // === FM Radio ===
-  void setFMFrequency(double frequency) =>
-      sendCommand('fm_frequency', {'value': frequency});
+  void setFMFrequency(double frequency) {
+    _currentState = _currentState.copyWith(fmFrequency: frequency);
+    _stateController.add(_currentState);
+    sendCommand('fm_frequency', {'value': frequency});
+  }
+
+  void seekFMUp() => sendCommand('fm_seek', {'dir': 1});
+  void seekFMDown() => sendCommand('fm_seek', {'dir': -1});
 
   // === Web Streaming ===
   void loadStreamURL(String url) => sendCommand('stream_url', {'url': url});

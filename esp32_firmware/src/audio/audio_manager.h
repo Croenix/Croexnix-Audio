@@ -2,7 +2,7 @@
 #define AUDIO_MANAGER_H
 
 #include <Arduino.h>
-#include "../core/config.h"
+#include "config.h"
 
 // Initialize audio subsystem
 void initAudioManager();

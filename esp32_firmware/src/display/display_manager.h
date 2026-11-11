@@ -5,16 +5,17 @@
 #include <TFT_eSPI.h>
 #include "config.h"
 
-// Initialize display and run animated boot sequence
+// Initialize display with Zero-State pure black boot
 void initDisplayManager();
 
-// Update display with non-blocking state machine
+// Non-blocking state machine display update
 void updateDisplay();
 
-// Screen views
+// Screen rendering views
 void showSplashScreen();
 void showMainScreen();
 void showHardwareDiagnosticsScreen();
+void showProvisioningQRScreen();
 
 // Custom graphical draw helpers
 void drawModernProgressBar(int x, int y, int width, int height, float progress, uint16_t color, uint16_t bgColor);

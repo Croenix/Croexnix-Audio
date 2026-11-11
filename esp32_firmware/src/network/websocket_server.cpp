@@ -179,6 +179,20 @@ void onWebSocketEvent(uint8_t num, WStype_t type, uint8_t* payload, size_t lengt
             else if (strcmp(command, "load_file") == 0) handleLoadFileCommand(doc);
             else if (strcmp(command, "fm_frequency") == 0) handleFMFrequencyCommand(doc);
             else if (strcmp(command, "stream_url") == 0) handleStreamURLCommand(doc);
+            else if (strcmp(command, "next_track") == 0) {
+                nextTrack();
+                broadcastDeviceState();
+            }
+            else if (strcmp(command, "prev_track") == 0) {
+                previousTrack();
+                broadcastDeviceState();
+            }
+            else if (strcmp(command, "fm_seek") == 0) {
+                int dir = doc["dir"] | 1;
+                if (dir > 0) seekFMUp();
+                else seekFMDown();
+                broadcastDeviceState();
+            }
             else if (strcmp(command, "get_status") == 0 || strcmp(command, "get_info") == 0) {
                 broadcastDeviceState();
                 broadcastMetadata();
