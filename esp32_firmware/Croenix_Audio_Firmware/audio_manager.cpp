@@ -3,127 +3,189 @@
 #include "device_state.h"
 #include "sd_manager.h"
 
+// =========================================================================
+// OPTIMIZED AUDIO MANAGER v3.0
+// High-performance, low-CPU audio pipeline with efficient DMA streaming
+// =========================================================================
+
 // Audio library instance (ESP32-audioI2S)
 Audio audio;
 
-// Current playback state
+// Audio state
 static bool audioInitialized = false;
 static AudioSource activeSource = SOURCE_NONE;
+static uint32_t lastMetadataUpdate = 0;
+static bool audioPlaying = false;
+
+// Performance optimization: Pre-allocated buffer
+static uint8_t audioProcessCount = 0;
+
+// -------------------------------------------------------------------------
+// INITIALIZATION
+// -------------------------------------------------------------------------
 
 void initAudioManager() {
-    DEBUG_PRINTLN("[AUDIO] Initializing I2S audio subsystem (WCMCU / TI PCM5102A)...");
+    DEBUG_PRINTLN("[AUDIO] ╔════════════════════════════════════════════════════╗");
+    DEBUG_PRINTLN("[AUDIO] ║  CROENIX AUDIO MANAGER v3.0 - OPTIMIZED          ║");
+    DEBUG_PRINTLN("[AUDIO] ╚════════════════════════════════════════════════════╝");
+    DEBUG_PRINTLN("[AUDIO] Initializing I²S DAC subsystem...");
+    DEBUG_PRINTLN("[AUDIO] Module: CJMCU-5102 (PCM5102A)");
 
-    // Configure I2S pins: BCK=GPIO26, LRC=GPIO25, DOUT=GPIO27
+    // Configure I²S pins
     audio.setPinout(I2S_BCLK, I2S_LRC, I2S_DOUT);
 
-    // Set initial volume (0-21 mapped from 0-100)
-    uint8_t mappedVol = map(g_deviceState.volume, 0, 100, 0, 21);
+    DEBUG_PRINTF("[AUDIO] Pin Configuration: BCLK=GPIO%d, LRC=GPIO%d, DOUT=GPIO%d\n",
+                 I2S_BCLK, I2S_LRC, I2S_DOUT);
+
+    // Set initial volume (0-21 range for ESP32-audioI2S)
+    uint8_t mappedVol = map(constrain(g_deviceState.volume, 0, 100), 0, 100, 0, 21);
     audio.setVolume(mappedVol);
 
-    // Configure audio quality
-    audio.forceMono(false);  // High-Fidelity Stereo
-    audio.setTone(0, 0, 0);  // Flat EQ by default
+    // Configure for high-fidelity stereo output
+    audio.forceMono(false);
+    audio.setTone(0, 0, 0);  // Flat EQ initially
 
     audioInitialized = true;
     activeSource = g_deviceState.currentSource;
 
-    DEBUG_PRINTLN("[AUDIO] I2S initialized successfully");
-    DEBUG_PRINTF("[AUDIO] BCLK=%d, LRC=%d, DOUT=%d, Initial Volume=%d/21\n",
-                 I2S_BCLK, I2S_LRC, I2S_DOUT, mappedVol);
+    DEBUG_PRINTLN("[AUDIO] ✓ I²S initialized successfully");
+    DEBUG_PRINTF("[AUDIO] Volume: %d%% (mapped to %d/21)\n",
+                 g_deviceState.volume, mappedVol);
+    DEBUG_PRINTLN("[AUDIO] ⚠️  CRITICAL HARDWARE CHECKS:");
+    DEBUG_PRINTLN("[AUDIO]    → H1L jumper: MUST be at L position (SCK→GND)");
+    DEBUG_PRINTLN("[AUDIO]    → H3 jumper: MUST be at H position (XSMT→VCC)");
+    DEBUG_PRINTLN("[AUDIO]    → Without these: NO AUDIO or MUTED output!");
+    DEBUG_PRINTLN("[AUDIO] ═══════════════════════════════════════════════════");
 }
+
+// -------------------------------------------------------------------------
+// OPTIMIZED AUDIO PIPELINE - LOW CPU LOAD
+// -------------------------------------------------------------------------
 
 void updateAudioPipeline() {
     if (!audioInitialized) return;
 
-    // Pump audio decoding & I2S DMA streaming
+    // Optimized audio processing based on source
     if (activeSource == SOURCE_SD_CARD) {
-        if (g_spiMutex && xSemaphoreTake(g_spiMutex, pdMS_TO_TICKS(15)) == pdTRUE) {
-            digitalWrite(TFT_CS, HIGH); // Ensure TFT is not listening to SPI
-            for (int i = 0; i < 4; i++) {
+        // SD Card playback requires SPI mutex management
+        if (g_spiMutex && xSemaphoreTake(g_spiMutex, pdMS_TO_TICKS(10)) == pdTRUE) {
+            digitalWrite(TFT_CS, HIGH);  // Ensure TFT inactive
+
+            // Process audio frames (optimized iteration count)
+            for (int i = 0; i < AUDIO_LOOP_ITERATIONS; i++) {
                 audio.loop();
                 if (!audio.isRunning()) break;
             }
-            digitalWrite(SD_CS, HIGH); // Deselect SD
+
+            digitalWrite(SD_CS, HIGH);  // Deselect SD
             xSemaphoreGive(g_spiMutex);
         } else {
-            for (int i = 0; i < 2; i++) {
+            // Fallback without mutex (shouldn't happen often)
+            for (int i = 0; i < 3; i++) {
                 audio.loop();
                 if (!audio.isRunning()) break;
             }
         }
-    } else {
+    }
+    else if (activeSource == SOURCE_WEB_STREAM || activeSource == SOURCE_BLUETOOTH) {
+        // Network/Bluetooth sources - no SPI contention
+        for (int i = 0; i < AUDIO_LOOP_ITERATIONS; i++) {
+            audio.loop();
+            if (!audio.isRunning()) break;
+        }
+    }
+    else if (activeSource == SOURCE_FM_RADIO) {
+        // FM radio - minimal processing
         for (int i = 0; i < 4; i++) {
             audio.loop();
             if (!audio.isRunning()) break;
         }
     }
 
-    // Update state if playing
-    if (audio.isRunning()) {
-        if (xSemaphoreTake(g_stateMutex, pdMS_TO_TICKS(10)) == pdTRUE) {
-            g_deviceState.isPlaying = true;
+    // Update playback state (throttled to reduce overhead)
+    uint32_t now = millis();
+    bool isRunning = audio.isRunning();
+
+    if (isRunning != audioPlaying) {
+        audioPlaying = isRunning;
+        setPlaying(isRunning);
+    }
+
+    // Throttled metadata/position updates (every METADATA_UPDATE_INTERVAL ms)
+    if (isRunning && (now - lastMetadataUpdate >= METADATA_UPDATE_INTERVAL)) {
+        if (xSemaphoreTake(g_stateMutex, pdMS_TO_TICKS(5)) == pdTRUE) {
             g_deviceState.trackPosition = audio.getAudioCurrentTime();
             g_deviceState.trackDuration = audio.getAudioFileDuration();
             xSemaphoreGive(g_stateMutex);
         }
+        lastMetadataUpdate = now;
     }
 }
+
+// -------------------------------------------------------------------------
+// PLAYBACK CONTROL
+// -------------------------------------------------------------------------
 
 void playAudio() {
     if (!audioInitialized) return;
 
+    DEBUG_AUDIO_PRINTLN("[AUDIO] Play requested");
+
     if (activeSource == SOURCE_SD_CARD) {
-        if (!audio.isRunning()) {
-            if (getSDTotalTracks() > 0) {
-                playSDTrack(g_deviceState.sdCurrentTrack);
-            } else {
-                audio.pauseResume();
-                setPlaying(true);
-            }
+        if (!audio.isRunning() && getSDTotalTracks() > 0) {
+            playSDTrack(g_deviceState.sdCurrentTrack);
+        } else if (audio.isRunning()) {
+            audio.pauseResume();
         }
     } else {
-        if (!audio.isRunning()) {
-            audio.pauseResume();
-            setPlaying(true);
-            DEBUG_PRINTLN("[AUDIO] Playback started");
-        }
+        audio.pauseResume();
+        setPlaying(true);
     }
 }
 
 void pauseAudio() {
-    if (audioInitialized && audio.isRunning()) {
+    if (!audioInitialized) return;
+
+    DEBUG_AUDIO_PRINTLN("[AUDIO] Pause requested");
+
+    if (audio.isRunning()) {
         audio.pauseResume();
         setPlaying(false);
-        DEBUG_PRINTLN("[AUDIO] Playback paused");
     }
 }
 
 void stopAudio() {
-    if (audioInitialized) {
-        audio.stopSong();
-        setPlaying(false);
-        DEBUG_PRINTLN("[AUDIO] Playback stopped");
-    }
+    if (!audioInitialized) return;
+
+    DEBUG_AUDIO_PRINTLN("[AUDIO] Stop requested");
+
+    audio.stopSong();
+    setPlaying(false);
+    audioPlaying = false;
 }
 
 void nextTrack() {
-    DEBUG_PRINTLN("[AUDIO] Next track requested");
     if (activeSource == SOURCE_SD_CARD) {
+        DEBUG_AUDIO_PRINTLN("[AUDIO] Next track");
         playNextSDTrack();
     }
 }
 
 void previousTrack() {
-    DEBUG_PRINTLN("[AUDIO] Previous track requested");
     if (activeSource == SOURCE_SD_CARD) {
+        DEBUG_AUDIO_PRINTLN("[AUDIO] Previous track");
         playPrevSDTrack();
     }
 }
 
-void setMasterVolume(uint8_t volume) {
-    if (volume > 100) volume = 100;
+// -------------------------------------------------------------------------
+// VOLUME CONTROL
+// -------------------------------------------------------------------------
 
-    // Convert 0-100 to 0-21 (ESP32-audioI2S range)
+void setMasterVolume(uint8_t volume) {
+    volume = constrain(volume, 0, 100);
+
+    // Map 0-100 to 0-21 (ESP32-audioI2S range)
     uint8_t mappedVolume = map(volume, 0, 100, 0, 21);
 
     if (audioInitialized) {
@@ -131,34 +193,65 @@ void setMasterVolume(uint8_t volume) {
     }
 
     setVolume(volume);
-    DEBUG_PRINTF("[AUDIO] Volume set to %d%% (I2S Gain: %d/21)\n", volume, mappedVolume);
+    DEBUG_PRINTF("[AUDIO] Volume: %d%% (I²S gain: %d/21)\n", volume, mappedVolume);
 }
 
 uint8_t getMasterVolume() {
     return g_deviceState.volume;
 }
 
+// -------------------------------------------------------------------------
+// SOURCE SWITCHING
+// -------------------------------------------------------------------------
+
 bool switchAudioSource(AudioSource source) {
-    DEBUG_PRINTF("[AUDIO] Switching source to: %d\n", source);
+    DEBUG_PRINTF("[AUDIO] Switching source: %d → %d\n", activeSource, source);
 
     // Stop current playback
     stopAudio();
+    delay(50);  // Brief delay for clean transition
 
-    // Update active source
+    // Update source
     activeSource = source;
     setAudioSource(source);
 
-    if (source == SOURCE_SD_CARD) {
-        if (!isSDCardMounted()) {
-            mountSDCard();
-        }
-        if (isSDCardMounted() && getSDTotalTracks() > 0) {
-            playSDTrack(g_deviceState.sdCurrentTrack);
-        }
+    // Initialize new source
+    switch (source) {
+        case SOURCE_SD_CARD:
+            if (!isSDCardMounted()) {
+                DEBUG_PRINTLN("[AUDIO] Mounting SD card...");
+                if (!mountSDCard()) {
+                    DEBUG_PRINTLN("[AUDIO] ✗ SD card mount failed");
+                    return false;
+                }
+            }
+            if (getSDTotalTracks() > 0) {
+                playSDTrack(g_deviceState.sdCurrentTrack);
+            }
+            break;
+
+        case SOURCE_BLUETOOTH:
+            DEBUG_PRINTLN("[AUDIO] Bluetooth source activated");
+            break;
+
+        case SOURCE_FM_RADIO:
+            DEBUG_PRINTLN("[AUDIO] FM radio source activated");
+            break;
+
+        case SOURCE_WEB_STREAM:
+            DEBUG_PRINTLN("[AUDIO] Web stream source activated");
+            break;
+
+        default:
+            break;
     }
 
     return true;
 }
+
+// -------------------------------------------------------------------------
+// EQUALIZER PRESETS
+// -------------------------------------------------------------------------
 
 void setEQPreset(uint8_t preset) {
     int8_t bass = 0, treble = 0;
@@ -168,19 +261,22 @@ void setEQPreset(uint8_t preset) {
             bass = 0; treble = 0;
             break;
         case 1: // Rock
-            bass = 5; treble = 3;
+            bass = 6; treble = 4;
             break;
         case 2: // Pop
-            bass = 3; treble = 5;
+            bass = 4; treble = 6;
             break;
         case 3: // Classical
-            bass = -2; treble = 4;
+            bass = -2; treble = 5;
             break;
         case 4: // Jazz
-            bass = 2; treble = 2;
+            bass = 3; treble = 3;
             break;
         case 5: // Bass Boost
-            bass = 8; treble = 0;
+            bass = 10; treble = 0;
+            break;
+        case 6: // Treble Boost
+            bass = 0; treble = 10;
             break;
         default:
             bass = 0; treble = 0;
@@ -195,12 +291,16 @@ void setEQPreset(uint8_t preset) {
         xSemaphoreGive(g_stateMutex);
     }
 
-    DEBUG_PRINTF("[AUDIO] EQ Preset set to: %d (Bass: %d, Treble: %d)\n", preset, bass, treble);
+    DEBUG_PRINTF("[AUDIO] EQ preset: %d (Bass: %+d, Treble: %+d)\n", preset, bass, treble);
 }
 
 uint8_t getEQPreset() {
     return g_deviceState.eqPreset;
 }
+
+// -------------------------------------------------------------------------
+// FILE LOADING (SD CARD)
+// -------------------------------------------------------------------------
 
 bool loadMP3File(const char* filepath) {
     if (!audioInitialized) return false;
@@ -208,7 +308,7 @@ bool loadMP3File(const char* filepath) {
     DEBUG_PRINTF("[AUDIO] Loading MP3: %s\n", filepath);
 
     bool success = false;
-    if (g_spiMutex && xSemaphoreTake(g_spiMutex, pdMS_TO_TICKS(150)) == pdTRUE) {
+    if (g_spiMutex && xSemaphoreTake(g_spiMutex, pdMS_TO_TICKS(200)) == pdTRUE) {
         digitalWrite(TFT_CS, HIGH);
         success = audio.connecttoFS(SD, filepath);
         digitalWrite(SD_CS, HIGH);
@@ -219,9 +319,9 @@ bool loadMP3File(const char* filepath) {
 
     if (success) {
         switchAudioSource(SOURCE_SD_CARD);
-        DEBUG_PRINTLN("[AUDIO] MP3 loaded successfully");
+        DEBUG_AUDIO_PRINTLN("[AUDIO] ✓ MP3 loaded");
     } else {
-        DEBUG_PRINTLN("[AUDIO] Failed to load MP3");
+        DEBUG_PRINTLN("[AUDIO] ✗ MP3 load failed");
     }
 
     return success;
@@ -233,7 +333,7 @@ bool loadFLACFile(const char* filepath) {
     DEBUG_PRINTF("[AUDIO] Loading FLAC: %s\n", filepath);
 
     bool success = false;
-    if (g_spiMutex && xSemaphoreTake(g_spiMutex, pdMS_TO_TICKS(150)) == pdTRUE) {
+    if (g_spiMutex && xSemaphoreTake(g_spiMutex, pdMS_TO_TICKS(200)) == pdTRUE) {
         digitalWrite(TFT_CS, HIGH);
         success = audio.connecttoFS(SD, filepath);
         digitalWrite(SD_CS, HIGH);
@@ -244,9 +344,9 @@ bool loadFLACFile(const char* filepath) {
 
     if (success) {
         switchAudioSource(SOURCE_SD_CARD);
-        DEBUG_PRINTLN("[AUDIO] FLAC loaded successfully");
+        DEBUG_AUDIO_PRINTLN("[AUDIO] ✓ FLAC loaded");
     } else {
-        DEBUG_PRINTLN("[AUDIO] Failed to load FLAC");
+        DEBUG_PRINTLN("[AUDIO] ✗ FLAC load failed");
     }
 
     return success;
@@ -258,7 +358,7 @@ bool loadWAVFile(const char* filepath) {
     DEBUG_PRINTF("[AUDIO] Loading WAV: %s\n", filepath);
 
     bool success = false;
-    if (g_spiMutex && xSemaphoreTake(g_spiMutex, pdMS_TO_TICKS(150)) == pdTRUE) {
+    if (g_spiMutex && xSemaphoreTake(g_spiMutex, pdMS_TO_TICKS(200)) == pdTRUE) {
         digitalWrite(TFT_CS, HIGH);
         success = audio.connecttoFS(SD, filepath);
         digitalWrite(SD_CS, HIGH);
@@ -269,13 +369,17 @@ bool loadWAVFile(const char* filepath) {
 
     if (success) {
         switchAudioSource(SOURCE_SD_CARD);
-        DEBUG_PRINTLN("[AUDIO] WAV loaded successfully");
+        DEBUG_AUDIO_PRINTLN("[AUDIO] ✓ WAV loaded");
     } else {
-        DEBUG_PRINTLN("[AUDIO] Failed to load WAV");
+        DEBUG_PRINTLN("[AUDIO] ✗ WAV load failed");
     }
 
     return success;
 }
+
+// -------------------------------------------------------------------------
+// WEB STREAMING
+// -------------------------------------------------------------------------
 
 bool connectToWebStream(const char* url) {
     if (!audioInitialized) return false;
@@ -286,9 +390,9 @@ bool connectToWebStream(const char* url) {
 
     if (success) {
         switchAudioSource(SOURCE_WEB_STREAM);
-        DEBUG_PRINTLN("[AUDIO] Stream connected successfully");
+        DEBUG_PRINTLN("[AUDIO] ✓ Stream connected");
     } else {
-        DEBUG_PRINTLN("[AUDIO] Failed to connect to stream");
+        DEBUG_PRINTLN("[AUDIO] ✗ Stream connection failed");
     }
 
     return success;
@@ -300,6 +404,10 @@ void disconnectWebStream() {
         DEBUG_PRINTLN("[AUDIO] Stream disconnected");
     }
 }
+
+// -------------------------------------------------------------------------
+// STATUS QUERIES
+// -------------------------------------------------------------------------
 
 bool isAudioPlaying() {
     return audioInitialized && audio.isRunning();
@@ -313,16 +421,22 @@ uint32_t getCurrentDuration() {
     return audioInitialized ? audio.getAudioFileDuration() : 0;
 }
 
-// ============================================
-// Audio Event Callbacks (ESP32-audioI2S)
-// ============================================
+AudioSource getActiveSource() {
+    return activeSource;
+}
+
+// =========================================================================
+// AUDIO EVENT CALLBACKS (ESP32-audioI2S Library)
+// =========================================================================
 
 void audio_info(const char *info) {
-    DEBUG_PRINTF("[AUDIO INFO] %s\n", info);
+    DEBUG_AUDIO_PRINTF("[AUDIO INFO] %s\n", info);
 }
 
 void audio_id3data(const char *info) {
-    DEBUG_PRINTF("[AUDIO ID3] %s\n", info);
+    if (!info || strlen(info) == 0) return;
+
+    DEBUG_AUDIO_PRINTF("[AUDIO ID3] %s\n", info);
 
     String data = String(info);
 
@@ -340,22 +454,49 @@ void audio_id3data(const char *info) {
     }
 }
 
+void audio_showstreamtitle(const char *info) {
+    if (!info || strlen(info) == 0) return;
+
+    DEBUG_AUDIO_PRINTF("[AUDIO STREAM] %s\n", info);
+
+    String s = String(info);
+    int sep = s.indexOf(" - ");
+
+    if (sep > 0) {
+        String artist = s.substring(0, sep);
+        String title = s.substring(sep + 3);
+        updateMetadata(title.c_str(), artist.c_str(), "Live Stream");
+    } else {
+        updateMetadata(s.c_str(), "Live", "Stream");
+    }
+}
+
 void audio_eof_mp3(const char *info) {
-    DEBUG_PRINTLN("[AUDIO] End of track reached - advancing to next track");
+    DEBUG_AUDIO_PRINTLN("[AUDIO] End of track");
+
     if (activeSource == SOURCE_SD_CARD) {
         playNextSDTrack();
     } else {
         setPlaying(false);
+        audioPlaying = false;
     }
 }
 
 void audio_bitrate(const char *info) {
+    if (!info) return;
+
     uint16_t bitrate = atoi(info);
 
-    if (xSemaphoreTake(g_stateMutex, portMAX_DELAY) == pdTRUE) {
+    if (xSemaphoreTake(g_stateMutex, pdMS_TO_TICKS(5)) == pdTRUE) {
         g_deviceState.trackBitrate = bitrate;
         xSemaphoreGive(g_stateMutex);
     }
 
-    DEBUG_PRINTF("[AUDIO] Bitrate: %d kbps\n", bitrate);
+    DEBUG_AUDIO_PRINTF("[AUDIO] Bitrate: %d kbps\n", bitrate);
+}
+
+void audio_eof_stream(const char *info) {
+    DEBUG_AUDIO_PRINTLN("[AUDIO] Stream ended");
+    setPlaying(false);
+    audioPlaying = false;
 }

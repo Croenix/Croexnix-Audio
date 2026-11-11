@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../core/theme/croenix_colors.dart';
 import '../../data/services/websocket_service.dart';
 import '../player/player_screen.dart';
+import '../soundcloud/soundcloud_screen.dart';
 import '../settings/settings_screen.dart';
 import 'widgets/connection_status_card.dart';
 import 'widgets/quick_controls_panel.dart';
@@ -27,6 +28,7 @@ class _HomeScreenState extends State<HomeScreen> {
   final List<Widget> _screens = [
     const _HomeTab(),
     const PlayerScreen(),
+    const SoundCloudScreen(),
     const SettingsScreen(),
   ];
 
@@ -50,6 +52,9 @@ class _HomeScreenState extends State<HomeScreen> {
           onTap: (index) => setState(() => _selectedIndex = index),
           backgroundColor: Colors.transparent,
           elevation: 0,
+          type: BottomNavigationBarType.fixed,
+          selectedItemColor: CroenixColors.primaryCyan,
+          unselectedItemColor: Colors.white54,
           items: const [
             BottomNavigationBarItem(
               icon: Icon(Icons.home_rounded),
@@ -58,6 +63,10 @@ class _HomeScreenState extends State<HomeScreen> {
             BottomNavigationBarItem(
               icon: Icon(Icons.music_note_rounded),
               label: 'Player',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.cloud_rounded),
+              label: 'SoundCloud',
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.settings_rounded),

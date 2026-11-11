@@ -178,7 +178,7 @@ void onWebSocketEvent(uint8_t num, WStype_t type, uint8_t* payload, size_t lengt
             else if (strcmp(command, "file_list") == 0) handleFileListCommand(doc);
             else if (strcmp(command, "load_file") == 0) handleLoadFileCommand(doc);
             else if (strcmp(command, "fm_frequency") == 0) handleFMFrequencyCommand(doc);
-            else if (strcmp(command, "stream_url") == 0) handleStreamURLCommand(doc);
+            else if (strcmp(command, "stream_url") == 0 || strcmp(command, "play_stream") == 0) handleStreamURLCommand(doc);
             else if (strcmp(command, "next_track") == 0) {
                 nextTrack();
                 broadcastDeviceState();
@@ -339,14 +339,28 @@ void handleFMFrequencyCommand(JsonDocument& doc) {
 
 void handleStreamURLCommand(JsonDocument& doc) {
     const char* url = doc["url"];
+    const char* title = doc["title"] | "SoundCloud Track";
+    const char* artist = doc["artist"] | "SoundCloud Stream";
+    const char* album = doc["album"] | "SoundCloud Playlist";
+
+    DEBUG_PRINTF("[WEBSOCKET] Streaming: %s | Title: %s | Artist: %s\n", url, title, artist);
+
+    // Update ID3 metadata immediately so TFT and app update in real time
+    updateMetadata(title, artist, album);
+
     bool success = connectToWebStream(url);
 
     StaticJsonDocument<256> response;
     response["type"] = "stream_result";
     response["success"] = success;
     response["url"] = url;
+    response["title"] = title;
+    response["artist"] = artist;
 
     String output;
     serializeJson(response, output);
     webSocket.broadcastTXT(output);
+
+    broadcastDeviceState();
+    broadcastMetadata();
 }

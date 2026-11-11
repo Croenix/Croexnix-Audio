@@ -50,6 +50,8 @@ class CroenixColors {
   static const Color sourceSDCard = Color(0xFF10B981);
   static const Color sourceFM = Color(0xFFF59E0B);
   static const Color sourceWebStream = Color(0xFF8B5CF6);
+  static const Color soundCloudOrange = Color(0xFFFF5500);
+  static const Color soundCloudOrangeDark = Color(0xFFCC4400);
 
   // === UI Element Colors ===
   static const Color divider = Color(0x1AFFFFFF);

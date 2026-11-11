@@ -3,67 +3,126 @@
 #include "audio_manager.h"
 #include "Audio.h"
 
+// =========================================================================
+// OPTIMIZED SD MANAGER v3.0
+// Fast, reliable SD card handling with efficient scanning
+// =========================================================================
+
 extern Audio audio;
 
+// SD Card State
 static bool s_sdMounted = false;
+static uint8_t s_sdPhysicalType = CARD_NONE;
+static bool s_sdFat32Error = false;
+
+// Track Database (Optimized with longer path support)
 static uint16_t s_sdTrackCount = 0;
-static char s_sdTrackPaths[MAX_SD_TRACKS][64];
-static char s_sdTrackNames[MAX_SD_TRACKS][48];
+static char s_sdTrackPaths[MAX_SD_TRACKS][80];  // Full paths
+static char s_sdTrackNames[MAX_SD_TRACKS][MAX_TRACK_NAME_LENGTH];  // Display names
 
+// Forward declarations
 static void scanDirectory(const char* dirPath);
+static bool attemptSDMount(uint32_t speed);
 
-// -------------------------------------------------------------
-// Robust Multi-Frequency SD Card Mount Engine
-// -------------------------------------------------------------
+// -------------------------------------------------------------------------
+// OPTIMIZED SD CARD MOUNTING
+// -------------------------------------------------------------------------
 
 bool mountSDCard() {
-    DEBUG_PRINTLN("[SD] Initializing SPI bus and mounting SD card...");
+    DEBUG_SD_PRINTLN("[SD] ╔════════════════════════════════════════════════════╗");
+    DEBUG_SD_PRINTLN("[SD] ║  SD CARD MOUNT - OPTIMIZED v3.0                  ║");
+    DEBUG_SD_PRINTLN("[SD] ╚════════════════════════════════════════════════════╝");
+    DEBUG_SD_PRINTLN("[SD] Module: https://robu.in/product/micro-sd-card-module/");
 
-    // 1. Deselect TFT and SD to avoid SPI bus conflict
+    // Clean shutdown of any existing session
+    SD.end();
+    delay(100);
+
+    // Configure pins with proper pull-ups
     pinMode(TFT_CS, OUTPUT);
     digitalWrite(TFT_CS, HIGH);
 
     pinMode(SD_CS, OUTPUT);
     digitalWrite(SD_CS, HIGH);
+
+    pinMode(SD_MOSI, OUTPUT);
+    pinMode(SD_SCK, OUTPUT);
+    pinMode(SD_MISO, INPUT_PULLUP);  // Critical for module compatibility
+
+    delay(50);
+
+    // Initialize SPI bus
+    SPI.begin(SD_SCK, SD_MISO, SD_MOSI, -1);
     delay(10);
 
-    // 2. Initialize SPI without binding SD_CS to hardware SS
-    SPI.begin(SD_SCK, SD_MISO, SD_MOSI, -1);
-
-    // 3. Official SD SPI Standard: Send >= 74 dummy clock cycles with CS HIGH
-    // This transitions the SD card internal state machine from SDIO mode to SPI mode
+    // Send power-up initialization clocks (SD spec requirement)
+    DEBUG_SD_PRINTLN("[SD] Sending power-up sequence...");
     digitalWrite(SD_CS, HIGH);
-    for (int i = 0; i < 20; i++) {
+    for (int i = 0; i < 10; i++) {
         SPI.transfer(0xFF);
     }
-    delay(10);
+    delay(50);
 
+    // Progressive speed attempts (start slow, increase if successful)
     bool mounted = false;
+    const uint32_t speeds[] = {
+        SD_SPI_SPEED_INIT,    // 400 kHz - SD spec standard
+        SD_SPI_SPEED_SLOW,    // 1 MHz
+        2000000,              // 2 MHz
+        SD_SPI_SPEED_NORMAL   // 4 MHz
+    };
 
-    // Attempt 1: 10 MHz (Standard High-Speed SPI)
-    DEBUG_PRINTLN("[SD] Attempting SD.begin at 10 MHz...");
-    mounted = SD.begin(SD_CS, SPI, SD_SPI_SPEED_FAST);
+    for (int i = 0; i < 4 && !mounted; i++) {
+        DEBUG_SD_PRINTF("[SD] Attempt %d: %d Hz...", i + 1, speeds[i]);
 
-    // Attempt 2: 4 MHz (High-Reliability Fallback for jumper wires/level shifters)
-    if (!mounted) {
-        DEBUG_PRINTLN("[SD] 10 MHz failed. Retrying at 4 MHz fallback...");
-        digitalWrite(SD_CS, HIGH);
-        delay(25);
-        mounted = SD.begin(SD_CS, SPI, SD_SPI_SPEED_NORMAL);
+        if (i > 0) {
+            SD.end();
+            delay(100);
+            digitalWrite(SD_CS, HIGH);
+        }
+
+        SPI.setFrequency(speeds[i]);
+        mounted = SD.begin(SD_CS, SPI, speeds[i]);
+
+        if (mounted) {
+            DEBUG_SD_PRINTLN(" ✓");
+            break;
+        } else {
+            DEBUG_SD_PRINTLN(" ✗");
+        }
     }
 
-    // Attempt 3: 1 MHz (Safe slow mode)
-    if (!mounted) {
-        DEBUG_PRINTLN("[SD] 4 MHz failed. Retrying at 1 MHz safe mode...");
-        digitalWrite(SD_CS, HIGH);
-        delay(25);
-        mounted = SD.begin(SD_CS, SPI, SD_SPI_SPEED_FALLBACK);
-    }
+    s_sdPhysicalType = SD.cardType();
 
     if (!mounted) {
-        DEBUG_PRINTLN("[SD] MOUNT FAILED: No SD card detected or card not formatted as FAT32.");
         digitalWrite(SD_CS, HIGH);
         s_sdMounted = false;
+
+        if (s_sdPhysicalType != CARD_NONE) {
+            s_sdFat32Error = true;
+            DEBUG_SD_PRINTLN("[SD] ╔════════════════════════════════════════════════╗");
+            DEBUG_SD_PRINTLN("[SD] ║  ✗ CARD DETECTED BUT MOUNT FAILED             ║");
+            DEBUG_SD_PRINTLN("[SD] ╚════════════════════════════════════════════════╝");
+            DEBUG_SD_PRINTLN("[SD] Card detected but filesystem mount failed.");
+            DEBUG_SD_PRINTLN("[SD] SOLUTIONS:");
+            DEBUG_SD_PRINTLN("[SD]   1. Reformat card as FAT32 (NOT exFAT/NTFS)");
+            DEBUG_SD_PRINTLN("[SD]   2. Use card ≤ 32GB for best compatibility");
+            DEBUG_SD_PRINTLN("[SD]   3. Try different SD card brand");
+        } else {
+            s_sdFat32Error = false;
+            DEBUG_SD_PRINTLN("[SD] ╔════════════════════════════════════════════════╗");
+            DEBUG_SD_PRINTLN("[SD] ║  ✗ NO CARD DETECTED                           ║");
+            DEBUG_SD_PRINTLN("[SD] ╚════════════════════════════════════════════════╝");
+            DEBUG_SD_PRINTLN("[SD] TROUBLESHOOTING:");
+            DEBUG_SD_PRINTLN("[SD]   ✓ VCC → 3.3V or 5V (check module specs)");
+            DEBUG_SD_PRINTLN("[SD]   ✓ GND connected");
+            DEBUG_SD_PRINTLN("[SD]   ✓ CS  → GPIO 15");
+            DEBUG_SD_PRINTLN("[SD]   ✓ MISO → GPIO 19 (with pull-up)");
+            DEBUG_SD_PRINTLN("[SD]   ✓ MOSI → GPIO 23");
+            DEBUG_SD_PRINTLN("[SD]   ✓ SCK  → GPIO 18");
+            DEBUG_SD_PRINTLN("[SD]   ✓ Card fully inserted in socket");
+        }
+
         if (xSemaphoreTake(g_stateMutex, pdMS_TO_TICKS(30)) == pdTRUE) {
             g_deviceState.sdCardMounted = false;
             g_deviceState.needDisplayRedraw = true;
@@ -72,31 +131,26 @@ bool mountSDCard() {
         return false;
     }
 
-    uint8_t cardType = SD.cardType();
-    if (cardType == CARD_NONE) {
-        DEBUG_PRINTLN("[SD] Card reported CARD_NONE!");
-        digitalWrite(SD_CS, HIGH);
-        s_sdMounted = false;
-        if (xSemaphoreTake(g_stateMutex, pdMS_TO_TICKS(30)) == pdTRUE) {
-            g_deviceState.sdCardMounted = false;
-            g_deviceState.needDisplayRedraw = true;
-            xSemaphoreGive(g_stateMutex);
-        }
-        return false;
-    }
-
+    // Mount successful
     s_sdMounted = true;
+    s_sdFat32Error = false;
     digitalWrite(SD_CS, HIGH);
 
     uint64_t cardSize = SD.cardSize();
     uint64_t usedBytes = SD.usedBytes();
 
-    DEBUG_PRINTF("[SD] Success! Card Type: %s, Size: %llu MB, Used: %llu MB\n",
-                 cardType == CARD_MMC ? "MMC" :
-                 cardType == CARD_SD ? "SDSC" :
-                 cardType == CARD_SDHC ? "SDHC" : "UNKNOWN",
-                 cardSize / (1024 * 1024),
-                 usedBytes / (1024 * 1024));
+    const char* cardTypeStr =
+        (s_sdPhysicalType == CARD_MMC) ? "MMC" :
+        (s_sdPhysicalType == CARD_SD) ? "SDSC" :
+        (s_sdPhysicalType == CARD_SDHC) ? "SDHC" : "UNKNOWN";
+
+    DEBUG_SD_PRINTLN("[SD] ╔════════════════════════════════════════════════════╗");
+    DEBUG_SD_PRINTLN("[SD] ║  ✓ SD CARD MOUNTED SUCCESSFULLY                   ║");
+    DEBUG_SD_PRINTLN("[SD] ╚════════════════════════════════════════════════════╝");
+    DEBUG_SD_PRINTF("[SD] Type: %s\n", cardTypeStr);
+    DEBUG_SD_PRINTF("[SD] Size: %llu MB\n", cardSize / (1024 * 1024));
+    DEBUG_SD_PRINTF("[SD] Used: %llu MB\n", usedBytes / (1024 * 1024));
+    DEBUG_SD_PRINTF("[SD] Free: %llu MB\n", (cardSize - usedBytes) / (1024 * 1024));
 
     if (xSemaphoreTake(g_stateMutex, pdMS_TO_TICKS(50)) == pdTRUE) {
         g_deviceState.sdCardMounted = true;
@@ -106,8 +160,10 @@ bool mountSDCard() {
         xSemaphoreGive(g_stateMutex);
     }
 
-    // Index all audio tracks
+    // Scan for audio files
+    DEBUG_SD_PRINTLN("[SD] Scanning for audio files...");
     scanSDAudioFiles();
+    DEBUG_SD_PRINTF("[SD] ═══════════════════════════════════════════════════\n");
 
     return true;
 }
@@ -116,9 +172,12 @@ bool initSDManager() {
     return mountSDCard();
 }
 
+// -------------------------------------------------------------------------
+// INTEGRITY CHECK (Hot-plug detection)
+// -------------------------------------------------------------------------
+
 bool checkSDIntegrity() {
     if (!s_sdMounted) {
-        // Hot-plug retry: attempt to mount if previously unmounted
         return mountSDCard();
     }
 
@@ -133,11 +192,24 @@ bool checkSDIntegrity() {
         }
         xSemaphoreGive(g_stateMutex);
     }
+
     return ok;
 }
 
+// -------------------------------------------------------------------------
+// STATUS QUERIES
+// -------------------------------------------------------------------------
+
 bool isSDCardMounted() {
     return s_sdMounted;
+}
+
+uint8_t getSDCardPhysicalType() {
+    return s_sdPhysicalType;
+}
+
+bool isSDFat32FormatError() {
+    return s_sdFat32Error;
 }
 
 uint64_t getSDCardSize() {
@@ -166,9 +238,9 @@ const char* getSDCurrentTrackName() {
     return getSDTrackName(g_deviceState.sdCurrentTrack);
 }
 
-// -------------------------------------------------------------
-// Audio File Scanner & Playlist Builder
-// -------------------------------------------------------------
+// -------------------------------------------------------------------------
+// OPTIMIZED AUDIO FILE SCANNER
+// -------------------------------------------------------------------------
 
 static void scanDirectory(const char* dirPath) {
     if (s_sdTrackCount >= MAX_SD_TRACKS) return;
@@ -184,10 +256,13 @@ static void scanDirectory(const char* dirPath) {
         if (!file.isDirectory()) {
             const char* name = file.name();
             String fname = String(name);
+
+            // Check for supported audio formats
             if (fname.endsWith(".mp3") || fname.endsWith(".MP3") ||
                 fname.endsWith(".wav") || fname.endsWith(".WAV") ||
                 fname.endsWith(".flac") || fname.endsWith(".FLAC") ||
-                fname.endsWith(".aac") || fname.endsWith(".m4a")) {
+                fname.endsWith(".aac") || fname.endsWith(".AAC") ||
+                fname.endsWith(".m4a") || fname.endsWith(".M4A")) {
 
                 // Build full path
                 String fullPath;
@@ -197,16 +272,22 @@ static void scanDirectory(const char* dirPath) {
                     fullPath = String(dirPath) + "/" + fname;
                 }
 
-                strncpy(s_sdTrackPaths[s_sdTrackCount], fullPath.c_str(), sizeof(s_sdTrackPaths[0]) - 1);
+                // Store full path
+                strncpy(s_sdTrackPaths[s_sdTrackCount], fullPath.c_str(),
+                        sizeof(s_sdTrackPaths[0]) - 1);
                 s_sdTrackPaths[s_sdTrackCount][sizeof(s_sdTrackPaths[0]) - 1] = '\0';
 
-                // Format display title (strip path and extension)
+                // Create display name (strip path and extension)
                 String title = fname;
                 int dotIdx = title.lastIndexOf('.');
                 if (dotIdx > 0) title = title.substring(0, dotIdx);
                 if (title.startsWith("/")) title = title.substring(1);
 
-                strncpy(s_sdTrackNames[s_sdTrackCount], title.c_str(), sizeof(s_sdTrackNames[0]) - 1);
+                // Replace underscores with spaces for better display
+                title.replace("_", " ");
+
+                strncpy(s_sdTrackNames[s_sdTrackCount], title.c_str(),
+                        sizeof(s_sdTrackNames[0]) - 1);
                 s_sdTrackNames[s_sdTrackCount][sizeof(s_sdTrackNames[0]) - 1] = '\0';
 
                 s_sdTrackCount++;
@@ -220,57 +301,75 @@ static void scanDirectory(const char* dirPath) {
 void scanSDAudioFiles() {
     if (!s_sdMounted) return;
 
-    DEBUG_PRINTLN("[SD] Scanning SD card for audio tracks...");
     s_sdTrackCount = 0;
 
-    // Scan root directory
+    // Scan root directory first
     scanDirectory("/");
 
-    // Scan standard audio directories if present
-    if (SD.exists("/MUSIC")) scanDirectory("/MUSIC");
-    else if (SD.exists("/music")) scanDirectory("/music");
-    else if (SD.exists("/MP3")) scanDirectory("/MP3");
-    else if (SD.exists("/AUDIO")) scanDirectory("/AUDIO");
+    // Scan common music directories
+    const char* musicDirs[] = {
+        "/MUSIC", "/music", "/Music",
+        "/MP3", "/mp3",
+        "/AUDIO", "/audio", "/Audio",
+        "/SONGS", "/songs", "/Songs"
+    };
 
-    DEBUG_PRINTF("[SD] Found %d tracks on SD card\n", s_sdTrackCount);
+    for (int i = 0; i < 9; i++) {
+        if (SD.exists(musicDirs[i])) {
+            scanDirectory(musicDirs[i]);
+        }
+    }
 
+    DEBUG_SD_PRINTF("[SD] Found %d audio files\n", s_sdTrackCount);
+
+    // Update device state
     if (xSemaphoreTake(g_stateMutex, pdMS_TO_TICKS(50)) == pdTRUE) {
         g_deviceState.sdTotalTracks = s_sdTrackCount;
+
         if (s_sdTrackCount > 0) {
+            // Ensure current track index is valid
             if (g_deviceState.sdCurrentTrack >= s_sdTrackCount) {
                 g_deviceState.sdCurrentTrack = 0;
             }
-            strncpy(g_deviceState.trackTitle, s_sdTrackNames[g_deviceState.sdCurrentTrack], MAX_METADATA_LENGTH - 1);
+
+            // Set initial track name
+            strncpy(g_deviceState.trackTitle,
+                    s_sdTrackNames[g_deviceState.sdCurrentTrack],
+                    MAX_METADATA_LENGTH - 1);
             g_deviceState.trackTitle[MAX_METADATA_LENGTH - 1] = '\0';
         }
+
         g_deviceState.needDisplayRedraw = true;
         xSemaphoreGive(g_stateMutex);
     }
 }
 
-// -------------------------------------------------------------
-// Track Playback & Navigation Logic
-// -------------------------------------------------------------
+// -------------------------------------------------------------------------
+// TRACK PLAYBACK & NAVIGATION
+// -------------------------------------------------------------------------
 
 bool playSDTrack(int index) {
     if (!s_sdMounted) {
         if (!mountSDCard()) return false;
     }
+
     if (s_sdTrackCount == 0) {
-        DEBUG_PRINTLN("[SD] No tracks found on SD card");
+        DEBUG_SD_PRINTLN("[SD] No tracks available");
         return false;
     }
 
-    // Wrap around index
+    // Wrap index
     if (index < 0) index = s_sdTrackCount - 1;
     if (index >= s_sdTrackCount) index = 0;
 
     const char* path = s_sdTrackPaths[index];
-    DEBUG_PRINTF("[SD] Playing track [%d/%d]: %s\n", index + 1, s_sdTrackCount, path);
+    DEBUG_SD_PRINTF("[SD] Playing [%d/%d]: %s\n", index + 1, s_sdTrackCount,
+                    s_sdTrackNames[index]);
 
+    // Load track with SPI mutex protection
     bool ok = false;
-    if (g_spiMutex && xSemaphoreTake(g_spiMutex, pdMS_TO_TICKS(150)) == pdTRUE) {
-        digitalWrite(TFT_CS, HIGH); // Guarantee TFT unselected
+    if (g_spiMutex && xSemaphoreTake(g_spiMutex, pdMS_TO_TICKS(200)) == pdTRUE) {
+        digitalWrite(TFT_CS, HIGH);
         ok = audio.connecttoFS(SD, path);
         digitalWrite(SD_CS, HIGH);
         xSemaphoreGive(g_spiMutex);
@@ -279,9 +378,11 @@ bool playSDTrack(int index) {
     }
 
     if (ok) {
+        // Update device state
         if (xSemaphoreTake(g_stateMutex, pdMS_TO_TICKS(50)) == pdTRUE) {
             g_deviceState.sdCurrentTrack = index;
-            strncpy(g_deviceState.trackTitle, s_sdTrackNames[index], MAX_METADATA_LENGTH - 1);
+            strncpy(g_deviceState.trackTitle, s_sdTrackNames[index],
+                    MAX_METADATA_LENGTH - 1);
             g_deviceState.trackTitle[MAX_METADATA_LENGTH - 1] = '\0';
             g_deviceState.trackArtist[0] = '\0';
             g_deviceState.trackAlbum[0] = '\0';
@@ -292,10 +393,11 @@ bool playSDTrack(int index) {
             g_deviceState.needDisplayRedraw = true;
             xSemaphoreGive(g_stateMutex);
         }
+
         commitSDTrackIndexToNVS(index);
-        DEBUG_PRINTLN("[SD] Track playback initiated successfully");
+        DEBUG_SD_PRINTLN("[SD] ✓ Playback started");
     } else {
-        DEBUG_PRINTF("[SD] Failed to start playback of track: %s\n", path);
+        DEBUG_SD_PRINTF("[SD] ✗ Failed to load: %s\n", path);
     }
 
     return ok;
@@ -311,9 +413,9 @@ bool playPrevSDTrack() {
     return playSDTrack(g_deviceState.sdCurrentTrack - 1);
 }
 
-// -------------------------------------------------------------
-// File & Playlist Helpers
-// -------------------------------------------------------------
+// -------------------------------------------------------------------------
+// FILE UTILITIES
+// -------------------------------------------------------------------------
 
 void listSDFiles(const char* path, JsonArray& filesArray) {
     if (!s_sdMounted) return;
@@ -330,14 +432,19 @@ void listSDFiles(const char* path, JsonArray& filesArray) {
     while (file && count < 100) {
         if (!file.isDirectory()) {
             String filename = String(file.name());
+
             if (filename.endsWith(".mp3") || filename.endsWith(".MP3") ||
                 filename.endsWith(".flac") || filename.endsWith(".FLAC") ||
-                filename.endsWith(".wav") || filename.endsWith(".WAV")) {
+                filename.endsWith(".wav") || filename.endsWith(".WAV") ||
+                filename.endsWith(".aac") || filename.endsWith(".AAC") ||
+                filename.endsWith(".m4a") || filename.endsWith(".M4A")) {
 
                 JsonObject fileObj = filesArray.createNestedObject();
                 fileObj["name"] = filename;
                 fileObj["size"] = file.size();
-                fileObj["path"] = (String(path) == "/") ? ("/" + filename) : (String(path) + "/" + filename);
+                fileObj["path"] = (String(path) == "/") ?
+                                  ("/" + filename) :
+                                  (String(path) + "/" + filename);
                 count++;
             }
         }
@@ -362,21 +469,32 @@ String readTextFile(const char* path) {
         content += (char)file.read();
     }
     file.close();
+
     return content;
 }
 
+// -------------------------------------------------------------------------
+// PLAYLIST MANAGEMENT
+// -------------------------------------------------------------------------
+
 void createPlaylist(const char* name) {
     if (!s_sdMounted) return;
+
     String p = "/playlists/" + String(name) + ".m3u";
-    if (!SD.exists("/playlists")) SD.mkdir("/playlists");
+    if (!SD.exists("/playlists")) {
+        SD.mkdir("/playlists");
+    }
+
     File f = SD.open(p.c_str(), FILE_WRITE);
     if (f) f.close();
 }
 
 void addToPlaylist(const char* playlistName, const char* filepath) {
     if (!s_sdMounted) return;
+
     String p = "/playlists/" + String(playlistName) + ".m3u";
     File f = SD.open(p.c_str(), FILE_APPEND);
+
     if (f) {
         f.println(filepath);
         f.close();
@@ -384,5 +502,6 @@ void addToPlaylist(const char* playlistName, const char* filepath) {
 }
 
 void loadPlaylist(const char* name) {
-    DEBUG_PRINTF("[SD] Loading playlist: %s\n", name);
+    DEBUG_SD_PRINTF("[SD] Loading playlist: %s\n", name);
+    // Playlist loading implementation can be added here
 }

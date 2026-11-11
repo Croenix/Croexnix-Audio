@@ -325,11 +325,20 @@ void showHardwareDiagnosticsScreen() {
                     tft.fillRoundRect(10, 89, 82, 13, 3, COLOR_NEON_GREEN);
                     tft.setTextColor(COLOR_DEEP_BG, COLOR_NEON_GREEN);
                     tft.drawString("MOUNTED OK", 14, 91);
+                } else if (isSDFat32FormatError()) {
+                    tft.setTextColor(COLOR_AMBER, COLOR_DEEP_BG);
+                    tft.drawString("Card Detected: YES", 10, 50);
+                    tft.drawString("FS Format: NOT FAT32!", 10, 62);
+                    tft.drawString("Format card as FAT32", 10, 74);
+
+                    tft.fillRoundRect(10, 89, 90, 13, 3, COLOR_AMBER);
+                    tft.setTextColor(COLOR_DEEP_BG, COLOR_AMBER);
+                    tft.drawString("FORMAT ERROR", 14, 91);
                 } else {
                     tft.setTextColor(COLOR_RED_ALERT, COLOR_DEEP_BG);
-                    tft.drawString("Status: Not Mounted", 10, 50);
-                    tft.drawString("Check: Card inserted?", 10, 62);
-                    tft.drawString("Check: FAT32 formatted?", 10, 74);
+                    tft.drawString("Status: No Card Found", 10, 50);
+                    tft.drawString("Check: VCC (5V vs 3.3V)", 10, 62);
+                    tft.drawString("Check: CS15 MISO19 SCK18", 10, 74);
 
                     tft.fillRoundRect(10, 89, 82, 13, 3, COLOR_RED_ALERT);
                     tft.setTextColor(COLOR_WHITE, COLOR_RED_ALERT);
@@ -687,27 +696,45 @@ void showMainScreen() {
         }
 
         // ============================================
-        // D. WEB FM / STREAMING MODE
+        // D. SOUNDCLOUD & WEB STREAMING MODE
         // ============================================
         case SOURCE_WEB_STREAM:
         default: {
+            #define COLOR_SOUNDCLOUD_ORANGE 0xFD20
             if (strcmp(g_deviceState.trackTitle, lastTitle) != 0 || needFullRedraw) {
-                tft.fillRect(4, 20, w - 8, 26, COLOR_DEEP_BG);
+                tft.fillRect(4, 20, w - 8, 48, COLOR_DEEP_BG);
 
+                // Top Badge: "SOUNDCLOUD STREAM"
+                tft.fillRoundRect(8, 20, 114, 11, 2, COLOR_SOUNDCLOUD_ORANGE);
                 tft.setTextSize(1);
+                tft.setTextColor(COLOR_DEEP_BG, COLOR_SOUNDCLOUD_ORANGE);
+                tft.drawString("SOUNDCLOUD STREAM", 12, 22);
+
+                // ID3 Track Title
                 tft.setTextColor(COLOR_WHITE, COLOR_DEEP_BG);
                 String title = (strlen(g_deviceState.trackTitle) > 0)
-                               ? String(g_deviceState.trackTitle) : "Web FM Digital Stream";
+                               ? String(g_deviceState.trackTitle) : "SoundCloud Playlist";
                 if (title.length() > 22) title = title.substring(0, 20) + "..";
-                tft.drawString(title, 8, 22);
+                tft.drawString(title, 8, 34);
 
-                tft.setTextColor(COLOR_NEON_GREEN, COLOR_DEEP_BG);
-                tft.drawString("Web Stream (44.1kHz / 16-bit)", 8, 34);
+                // ID3 Artist / Channel
+                tft.setTextColor(COLOR_PRIMARY_CYAN, COLOR_DEEP_BG);
+                String artist = (strlen(g_deviceState.trackArtist) > 0)
+                                ? String(g_deviceState.trackArtist) : "SoundCloud Artist";
+                if (artist.length() > 24) artist = artist.substring(0, 22) + "..";
+                tft.drawString(artist, 8, 45);
+
+                // Bitrate & I2S Stream Info
+                tft.setTextColor(COLOR_MUTED_GRAY, COLOR_DEEP_BG);
+                char infoStr[32];
+                uint16_t br = g_deviceState.trackBitrate > 0 ? g_deviceState.trackBitrate : 128;
+                snprintf(infoStr, sizeof(infoStr), "%ukbps • I2S Hi-Fi", br);
+                tft.drawString(infoStr, 8, 56);
 
                 strncpy(lastTitle, g_deviceState.trackTitle, MAX_METADATA_LENGTH - 1);
             }
 
-            drawAudioVisualizer(8, 48, w - 16, 34, g_deviceState.isPlaying);
+            drawAudioVisualizer(8, 68, w - 16, 20, g_deviceState.isPlaying);
             break;
         }
     }

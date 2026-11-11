@@ -14,6 +14,8 @@ bool checkSDIntegrity();
 
 // SD Card Status & Capacity
 bool isSDCardMounted();
+uint8_t getSDCardPhysicalType();
+bool isSDFat32FormatError();
 uint64_t getSDCardSize();
 uint64_t getSDCardUsed();
 uint16_t getSDTotalTracks();

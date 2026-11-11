@@ -273,8 +273,98 @@ class WebSocketService {
   void seekFMUp() => sendCommand('fm_seek', {'dir': 1});
   void seekFMDown() => sendCommand('fm_seek', {'dir': -1});
 
-  // === Web Streaming ===
-  void loadStreamURL(String url) => sendCommand('stream_url', {'url': url});
+  // === Web Streaming & SoundCloud ===
+  void loadStreamURL(String url, {String? title, String? artist, String? album}) {
+    sendCommand('stream_url', {
+      'url': url,
+      if (title != null) 'title': title,
+      if (artist != null) 'artist': artist,
+      if (album != null) 'album': album,
+    });
+  }
+
+  // === SoundCloud & Web Stream Playlist Management ===
+  List<Map<String, dynamic>> _soundCloudPlaylist = [];
+  int _currentSoundCloudIndex = 0;
+  bool _isAutoPlayingPlaylist = false;
+
+  List<Map<String, dynamic>> get soundCloudPlaylist => _soundCloudPlaylist;
+  int get currentSoundCloudIndex => _currentSoundCloudIndex;
+  bool get isAutoPlayingPlaylist => _isAutoPlayingPlaylist;
+
+  void playSoundCloudTrack({
+    required String url,
+    required String title,
+    required String artist,
+    String album = 'SoundCloud Master',
+    int duration = 0,
+  }) {
+    // Optimistic local state update for zero UI lag
+    _currentState = _currentState.copyWith(
+      currentSource: AudioSource.webStream,
+      trackTitle: title,
+      trackArtist: artist,
+      trackAlbum: album,
+      isPlaying: true,
+    );
+    _stateController.add(_currentState);
+
+    sendCommand('play_stream', {
+      'url': url,
+      'title': title,
+      'artist': artist,
+      'album': album,
+      'duration': duration,
+    });
+  }
+
+  void playSoundCloudPlaylist(List<Map<String, dynamic>> playlist, {int startIndex = 0}) {
+    if (playlist.isEmpty) return;
+    _soundCloudPlaylist = List.from(playlist);
+    _currentSoundCloudIndex = startIndex.clamp(0, playlist.length - 1);
+    _isAutoPlayingPlaylist = true;
+
+    final track = _soundCloudPlaylist[_currentSoundCloudIndex];
+    playSoundCloudTrack(
+      url: track['url'] as String,
+      title: track['title'] as String,
+      artist: track['artist'] as String,
+      album: (track['album'] as String?) ?? 'SoundCloud Playlist',
+      duration: (track['duration'] as int?) ?? 0,
+    );
+  }
+
+  void nextSoundCloudTrack() {
+    if (_soundCloudPlaylist.isEmpty) {
+      nextTrack();
+      return;
+    }
+    _currentSoundCloudIndex = (_currentSoundCloudIndex + 1) % _soundCloudPlaylist.length;
+    final track = _soundCloudPlaylist[_currentSoundCloudIndex];
+    playSoundCloudTrack(
+      url: track['url'] as String,
+      title: track['title'] as String,
+      artist: track['artist'] as String,
+      album: (track['album'] as String?) ?? 'SoundCloud Playlist',
+      duration: (track['duration'] as int?) ?? 0,
+    );
+  }
+
+  void prevSoundCloudTrack() {
+    if (_soundCloudPlaylist.isEmpty) {
+      previousTrack();
+      return;
+    }
+    _currentSoundCloudIndex = (_currentSoundCloudIndex - 1 + _soundCloudPlaylist.length) % _soundCloudPlaylist.length;
+    final track = _soundCloudPlaylist[_currentSoundCloudIndex];
+    playSoundCloudTrack(
+      url: track['url'] as String,
+      title: track['title'] as String,
+      artist: track['artist'] as String,
+      album: (track['album'] as String?) ?? 'SoundCloud Playlist',
+      duration: (track['duration'] as int?) ?? 0,
+    );
+  }
 
   // === System Commands ===
   void rebootDevice() => sendCommand('reboot');

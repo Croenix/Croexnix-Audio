@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../core/theme/croenix_colors.dart';
 import '../../data/services/websocket_service.dart';
 import '../../data/models/device_state.dart';
+import '../soundcloud/soundcloud_screen.dart';
 import 'widgets/audio_visualizer.dart';
 import 'widgets/control_buttons.dart';
 import 'widgets/track_progress_bar.dart';
@@ -317,9 +318,9 @@ class _PlayerScreenState extends State<PlayerScreen>
         sourceIcon = Icons.radio_rounded;
         break;
       case AudioSource.webStream:
-        sourceText = 'Web FM Digital';
-        sourceColor = CroenixColors.sourceWebStream;
-        sourceIcon = Icons.language_rounded;
+        sourceText = 'SoundCloud Stream';
+        sourceColor = CroenixColors.soundCloudOrange;
+        sourceIcon = Icons.cloud_rounded;
         break;
       default:
         sourceText = 'Standby';
@@ -449,8 +450,9 @@ class _PlayerScreenState extends State<PlayerScreen>
         return _buildFMRadioDashboard();
       case AudioSource.sdCard:
         return _buildSDCardDashboard();
-      case AudioSource.bluetooth:
       case AudioSource.webStream:
+        return _buildSoundCloudDashboard();
+      case AudioSource.bluetooth:
       default:
         return _buildMediaRemoteDashboard();
     }
@@ -602,6 +604,73 @@ class _PlayerScreenState extends State<PlayerScreen>
             label: const Text('Open SD Card File Browser',
                 style: TextStyle(fontWeight: FontWeight.bold)),
             onPressed: _showSDFolderBrowser,
+          ),
+        ),
+      ],
+    );
+  }
+
+  // -------------------------------------------------------------
+  // Mode 3: SoundCloud Online Stream Dashboard
+  // -------------------------------------------------------------
+  Widget _buildSoundCloudDashboard() {
+    return Column(
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+          decoration: BoxDecoration(
+            color: CroenixColors.soundCloudOrange.withValues(alpha: 0.15),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+                color: CroenixColors.soundCloudOrange.withValues(alpha: 0.4)),
+          ),
+          child: const Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.cloud_rounded,
+                  size: 14, color: CroenixColors.soundCloudOrange),
+              SizedBox(width: 6),
+              Text(
+                'SOUNDCLOUD LIVE STREAM',
+                style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: CroenixColors.soundCloudOrange),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 14),
+        _buildTrackInfo(),
+        const SizedBox(height: 20),
+        ControlButtons(
+          isPlaying: _deviceState.isPlaying,
+          onPlay: () => _wsService.play(),
+          onPause: () => _wsService.pause(),
+          onPrevious: () => _wsService.prevSoundCloudTrack(),
+          onNext: () => _wsService.nextSoundCloudTrack(),
+        ),
+        const SizedBox(height: 16),
+        SizedBox(
+          width: double.infinity,
+          height: 44,
+          child: ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: CroenixColors.soundCloudOrange,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
+            ),
+            icon: const Icon(Icons.queue_music_rounded, size: 18),
+            label: const Text('SoundCloud Playlist & Channels',
+                style: TextStyle(fontWeight: FontWeight.bold)),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (ctx) => const SoundCloudScreen()),
+              );
+            },
           ),
         ),
       ],

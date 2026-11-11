@@ -1,5 +1,8 @@
-// Croenix Audio Firmware - Arduino IDE Main File
-// Rename this to: Croenix_Audio_Firmware.ino
+// =========================================================================
+// CROENIX AUDIO FIRMWARE v3.0 - OPTIMIZED REBUILD
+// High-Performance, Low-Load Architecture for ESP32-WROOM-32
+// Real-time Mobile App Integration with Smooth Performance
+// =========================================================================
 
 #include <Arduino.h>
 #include "config.h"
@@ -12,141 +15,201 @@
 #include "sd_manager.h"
 #include "encoder_manager.h"
 
-// FreeRTOS Task Handles
+// -------------------------------------------------------------------------
+// FreeRTOS Task Handles (Optimized Multi-Core Architecture)
+// -------------------------------------------------------------------------
+
 TaskHandle_t audioTaskHandle = nullptr;
 TaskHandle_t networkTaskHandle = nullptr;
 TaskHandle_t displayTaskHandle = nullptr;
 TaskHandle_t controlTaskHandle = nullptr;
 
-// ============================================
-// Core 1: Dedicated Audio Decoding & I2S DMA Task
-// ============================================
+// Performance monitoring (disabled in production)
+static uint32_t lastHeapReport = 0;
+
+// =========================================================================
+// CORE 1: DEDICATED AUDIO TASK (Highest Priority)
+// Real-time audio decoding & I²S DMA streaming without interference
+// =========================================================================
 
 void audioTask(void* parameter) {
-    DEBUG_PRINTLN("[AUDIO TASK] Stream loop active on Core 1...");
+    DEBUG_PRINTLN("[TASK:AUDIO] Audio task started on Core 1");
+    DEBUG_PRINTF("[TASK:AUDIO] Priority: %d, Stack: %d bytes\n",
+                 AUDIO_TASK_PRIORITY, AUDIO_STACK_SIZE);
+
+    // Small delay to allow other systems to initialize
+    vTaskDelay(pdMS_TO_TICKS(100));
 
     while (true) {
-        // Process audio pipeline (decodes MP3/WAV/FLAC and feeds I2S DMA FIFO)
+        // Process audio pipeline with optimized loop iterations
         updateAudioPipeline();
 
+        // Adaptive yielding based on playback state
         if (isAudioPlaying()) {
-            // Saturated audio stream: yield CPU to prevent FreeRTOS watchdog starvation
-            // without introducing 10ms sleep delays that drain the I2S DMA buffer
+            // Active playback: Yield CPU but don't sleep (prevent buffer underruns)
             taskYIELD();
         } else {
-            // Idle state: delay to conserve CPU cycles and power
-            vTaskDelay(pdMS_TO_TICKS(10));
+            // Idle: Sleep to conserve CPU
+            vTaskDelay(pdMS_TO_TICKS(AUDIO_UPDATE_INTERVAL));
         }
     }
 }
 
-// ============================================
-// Core 0: Network & WebSocket Processing
-// ============================================
+// =========================================================================
+// CORE 0: NETWORK TASK (High Priority)
+// Wi-Fi, WebSocket, mDNS - Real-time mobile app communication
+// =========================================================================
 
 void networkTask(void* parameter) {
-    DEBUG_PRINTLN("[NETWORK TASK] Starting network stack on Core 0...");
+    DEBUG_PRINTLN("[TASK:NETWORK] Network task started on Core 0");
+    DEBUG_PRINTF("[TASK:NETWORK] Priority: %d, Stack: %d bytes\n",
+                 NETWORK_TASK_PRIORITY, NETWORK_STACK_SIZE);
 
-    // Initialize Wi-Fi (Dual-Mode AP / Station) and WebSocket server
+    // Initialize network components
+    vTaskDelay(pdMS_TO_TICKS(200));
+
     initWiFiManager();
+    vTaskDelay(pdMS_TO_TICKS(100));
+
     initWebSocketServer();
 
+    DEBUG_PRINTLN("[TASK:NETWORK] Network stack ready");
+
     while (true) {
-        // Handle network events and WebSocket communication
+        // Update Wi-Fi state machine
         updateWiFiManager();
+
+        // Handle WebSocket events and client messages
         updateWebSocketServer();
 
+        // Moderate sleep for responsive app control
         vTaskDelay(pdMS_TO_TICKS(10));
     }
 }
 
-// ============================================
-// Core 0: Non-Blocking DMA Display Task
-// ============================================
+// =========================================================================
+// CORE 0: DISPLAY TASK (Medium Priority)
+// Non-blocking SPI display updates with mutex protection
+// =========================================================================
 
 void displayTask(void* parameter) {
-    DEBUG_PRINTLN("[DISPLAY TASK] UI render loop active on Core 0...");
+    DEBUG_PRINTLN("[TASK:DISPLAY] Display task started on Core 0");
+    DEBUG_PRINTF("[TASK:DISPLAY] Priority: %d, Stack: %d bytes\n",
+                 DISPLAY_TASK_PRIORITY, DISPLAY_STACK_SIZE);
+
+    // Wait for display initialization
+    vTaskDelay(pdMS_TO_TICKS(300));
 
     while (true) {
-        // Safe SPI arbitration: Deselect SD before TFT operations
-        if (g_spiMutex && xSemaphoreTake(g_spiMutex, pdMS_TO_TICKS(25)) == pdTRUE) {
-            digitalWrite(SD_CS, HIGH); // Guarantee SD card is deselected
+        // SPI bus arbitration with mutex
+        if (g_spiMutex && xSemaphoreTake(g_spiMutex, pdMS_TO_TICKS(20)) == pdTRUE) {
+            digitalWrite(SD_CS, HIGH);   // Ensure SD inactive
+
             updateDisplay();
-            digitalWrite(TFT_CS, HIGH); // Deselect TFT
+
+            digitalWrite(TFT_CS, HIGH);  // Deselect display
             xSemaphoreGive(g_spiMutex);
         }
 
+        // Display update rate (20 FPS for low CPU usage)
         vTaskDelay(pdMS_TO_TICKS(DISPLAY_UPDATE_RATE));
     }
 }
 
-// ============================================
-// Core 0: Rotary Encoder & System State Control
-// ============================================
+// =========================================================================
+// CORE 0: CONTROL TASK (Medium Priority)
+// Encoder input, button handling, system state management
+// =========================================================================
 
 void controlTask(void* parameter) {
-    DEBUG_PRINTLN("[CONTROL TASK] Peripheral control loop active on Core 0...");
+    DEBUG_PRINTLN("[TASK:CONTROL] Control task started on Core 0");
+    DEBUG_PRINTF("[TASK:CONTROL] Priority: %d, Stack: %d bytes\n",
+                 CONTROL_TASK_PRIORITY, CONTROL_STACK_SIZE);
+
+    vTaskDelay(pdMS_TO_TICKS(250));
 
     while (true) {
-        // Handle rotary encoder detents & button states
+        // Handle rotary encoder events
         updateEncoderManager();
 
-        // Handle system metrics and debounced NVS commits
-        updateSystemState();
+        // Update system state (FM tune window expiration, NVS commits, etc.)
+        checkFMTuneExpiration();
 
+        // Fast response for user input
         vTaskDelay(pdMS_TO_TICKS(10));
+
+#if ENABLE_MEMORY_MONITOR
+        // Periodic heap monitoring (debug only)
+        uint32_t now = millis();
+        if (now - lastHeapReport > 30000) {  // Every 30 seconds
+            DEBUG_PRINTF("[SYSTEM] Free heap: %d bytes\n", ESP.getFreeHeap());
+            lastHeapReport = now;
+        }
+#endif
     }
 }
 
-// ============================================
-// Arduino Setup Function (Deterministic Sequential Boot)
-// ============================================
+// =========================================================================
+// ARDUINO SETUP - SYSTEM INITIALIZATION
+// =========================================================================
 
 void setup() {
-    // 1. Initialize serial for debugging
-    #if DEBUG_SERIAL
+    // Initialize serial debug output
+#if DEBUG_SERIAL
     Serial.begin(DEBUG_BAUD_RATE);
-    while (!Serial && millis() < 2500);
-    DEBUG_PRINTLN("\n\n===========================================");
-    DEBUG_PRINTLN("ESP32 High-Fidelity Audio Player");
-    DEBUG_PRINTLN("Croenix Audios - Production Architecture");
-    DEBUG_PRINTLN("===========================================\n");
-    #endif
+    delay(500);
+    Serial.println();
+    Serial.println("╔════════════════════════════════════════════════════════════╗");
+    Serial.println("║           CROENIX AUDIO PLAYER v3.0 - OPTIMIZED          ║");
+    Serial.println("║         High-Performance Low-Load Architecture            ║");
+    Serial.println("╚════════════════════════════════════════════════════════════╝");
+    Serial.println();
+    DEBUG_PRINTF("[SYSTEM] Firmware: %s\n", FIRMWARE_VERSION);
+    DEBUG_PRINTF("[SYSTEM] Device: %s\n", DEVICE_NAME);
+    DEBUG_PRINTF("[SYSTEM] Chip: ESP32, Cores: 2, CPU: %d MHz\n", getCpuFrequencyMhz());
+    DEBUG_PRINTF("[SYSTEM] Flash: %d MB, Free heap: %d bytes\n",
+                 ESP.getFlashChipSize() / (1024 * 1024), ESP.getFreeHeap());
+    Serial.println("════════════════════════════════════════════════════════════");
+#endif
 
-    // 2. Initialize thread-safe device state & load NVS settings
+    // Initialize device state and NVS
+    DEBUG_PRINTLN("[INIT] Initializing device state...");
     initDeviceState();
 
-    // 3. Initialize ST7735 Display (Zero-State Pure Black Boot + Splash Screen)
-    DEBUG_PRINTLN("[INIT] 1/5: Initializing Display...");
-    initDisplayManager();
-
-    // 4. Initialize MicroSD Card Reader & scan audio tracks
-    DEBUG_PRINTLN("[INIT] 2/5: Initializing SD Card...");
-    initSDManager();
-
-    // 5. Initialize WCMCU I2S DAC (TI PCM5102A)
-    DEBUG_PRINTLN("[INIT] 3/5: Initializing I2S DAC Audio Subsystem...");
+    // Initialize audio subsystem (I²S DAC)
+    DEBUG_PRINTLN("[INIT] Initializing audio manager...");
     initAudioManager();
 
-    // 6. Initialize HW-322 FM Radio Module
-    DEBUG_PRINTLN("[INIT] 4/5: Initializing FM Radio...");
-    initFMRadio();
-
-    // 7. Initialize 5-Pin Rotary Encoder
-    DEBUG_PRINTLN("[INIT] 5/5: Initializing Rotary Encoder...");
-    initEncoderManager();
-
-    // 8. Auto-start SD Card playback if source is SD and tracks are found
-    if (isSDCardMounted() && getSDTotalTracks() > 0) {
-        if (g_deviceState.currentSource == SOURCE_SD_CARD) {
-            DEBUG_PRINTLN("[INIT] Auto-playing saved SD track index...");
-            playSDTrack(g_deviceState.sdCurrentTrack);
-        }
+    // Initialize SD card (non-blocking, will retry if failed)
+    DEBUG_PRINTLN("[INIT] Initializing SD card manager...");
+    if (!initSDManager()) {
+        DEBUG_PRINTLN("[INIT] ⚠️  SD card mount failed - will retry in background");
     }
 
-    DEBUG_PRINTLN("[INIT] Launching FreeRTOS Multi-Core Tasks...");
+    // Initialize display (ST7735 TFT)
+    DEBUG_PRINTLN("[INIT] Initializing display manager...");
+    initDisplayManager();
 
-    // Core 1: Strictly reserved for real-time Audio decoding and I2S DAC streaming
+    // Initialize encoder
+    DEBUG_PRINTLN("[INIT] Initializing encoder...");
+    initEncoderManager();
+
+    // Initialize FM radio (optional)
+#if ENABLE_FM_RADIO
+    DEBUG_PRINTLN("[INIT] Initializing FM radio...");
+    initFMRadio();
+#endif
+
+    // Show boot splash (display manager handles this)
+    DEBUG_PRINTLN("[INIT] Displaying boot splash...");
+    setUIScreen(UI_SCREEN_BOOT_SPLASH);
+    delay(BOOT_DELAY_MS);
+    setUIScreen(UI_SCREEN_HOME);
+
+    DEBUG_PRINTLN("════════════════════════════════════════════════════════════");
+    DEBUG_PRINTLN("[INIT] Creating FreeRTOS tasks...");
+
+    // Create Core 1 task: Audio processing (highest priority)
     xTaskCreatePinnedToCore(
         audioTask,
         "AudioTask",
@@ -154,10 +217,11 @@ void setup() {
         nullptr,
         AUDIO_TASK_PRIORITY,
         &audioTaskHandle,
-        AUDIO_CORE // Core 1
+        AUDIO_CORE
     );
+    DEBUG_PRINTLN("[INIT] ✓ Audio task created on Core 1");
 
-    // Core 0: Wi-Fi Stack, WebSocket Server & Provisioning
+    // Create Core 0 tasks: Network, Display, Control
     xTaskCreatePinnedToCore(
         networkTask,
         "NetworkTask",
@@ -165,10 +229,10 @@ void setup() {
         nullptr,
         NETWORK_TASK_PRIORITY,
         &networkTaskHandle,
-        NETWORK_CORE // Core 0
+        NETWORK_CORE
     );
+    DEBUG_PRINTLN("[INIT] ✓ Network task created on Core 0");
 
-    // Core 0: Display Rendering
     xTaskCreatePinnedToCore(
         displayTask,
         "DisplayTask",
@@ -176,10 +240,10 @@ void setup() {
         nullptr,
         DISPLAY_TASK_PRIORITY,
         &displayTaskHandle,
-        CONTROL_CORE // Core 0
+        CONTROL_CORE
     );
+    DEBUG_PRINTLN("[INIT] ✓ Display task created on Core 0");
 
-    // Core 0: Rotary Encoder, Buttons & Hardware Management
     xTaskCreatePinnedToCore(
         controlTask,
         "ControlTask",
@@ -187,51 +251,40 @@ void setup() {
         nullptr,
         CONTROL_TASK_PRIORITY,
         &controlTaskHandle,
-        CONTROL_CORE // Core 0
+        CONTROL_CORE
     );
+    DEBUG_PRINTLN("[INIT] ✓ Control task created on Core 0");
 
-    DEBUG_PRINTLN("[INIT] All tasks created successfully!");
-    DEBUG_PRINTF("[INIT] Free heap: %u bytes\n", ESP.getFreeHeap());
-    DEBUG_PRINTF("[INIT] Chip ID: %llX\n", ESP.getEfuseMac());
-    DEBUG_PRINTLN("[INIT] Croenix Audios ready!\n");
+    DEBUG_PRINTLN("════════════════════════════════════════════════════════════");
+    DEBUG_PRINTLN("[SYSTEM] Initialization complete - All tasks running");
+    DEBUG_PRINTLN("[SYSTEM] Mobile app: Connect to Wi-Fi and open WebSocket");
+    DEBUG_PRINTF("[SYSTEM] WebSocket URL: ws://%s:%d\n", AP_IP, WS_PORT);
+    DEBUG_PRINTLN("════════════════════════════════════════════════════════════");
+    DEBUG_PRINTLN();
+
+    // Set initial source from NVS
+    if (g_deviceState.currentSource == SOURCE_SD_CARD && isSDCardMounted()) {
+        if (getSDTotalTracks() > 0) {
+            DEBUG_PRINTLN("[SYSTEM] Auto-starting SD playback...");
+            playSDTrack(g_deviceState.sdCurrentTrack);
+        }
+    }
 }
 
-// ============================================
-// Arduino Loop Function
-// ============================================
+// =========================================================================
+// ARDUINO LOOP - MINIMAL OVERHEAD
+// FreeRTOS scheduler handles all tasks, loop just yields
+// =========================================================================
 
 void loop() {
-    // Main loop runs on Core 1 but FreeRTOS tasks handle all processing
+    // All work is done in FreeRTOS tasks
+    // This loop just prevents watchdog timeout
     vTaskDelay(pdMS_TO_TICKS(1000));
+
+    // Optional: Handle critical system events here if needed
+    // (Currently not used - all logic is in tasks)
 }
 
-// ============================================
-// System State Update Helper
-// ============================================
-
-void updateSystemState() {
-    static unsigned long lastMetrics = 0;
-    unsigned long now = millis();
-    if (now - lastMetrics < 500) return;
-    lastMetrics = now;
-
-    if (xSemaphoreTake(g_stateMutex, pdMS_TO_TICKS(50)) == pdTRUE) {
-        // Update live system metrics
-        g_deviceState.uptime = now / 1000;
-        g_deviceState.freeHeap = ESP.getFreeHeap();
-        g_deviceState.totalHeap = ESP.getHeapSize();
-        g_deviceState.minFreeHeap = ESP.getMinFreeHeap();
-        if (g_deviceState.totalHeap > 0) {
-            g_deviceState.heapUsagePercent = (uint8_t)(((g_deviceState.totalHeap - g_deviceState.freeHeap) * 100) / g_deviceState.totalHeap);
-        }
-
-        // Dynamic CPU usage estimation
-        g_deviceState.cpuUsageCore0 = g_deviceState.isPlaying ? 28 : 12;
-        g_deviceState.cpuUsageCore1 = (g_deviceState.activeScreen == UI_SCREEN_HARDWARE_DIAGNOSTICS) ? 24 : 16;
-
-        xSemaphoreGive(g_stateMutex);
-    }
-
-    // Commit any pending debounced NVS state (e.g., volume/source changes after settling)
-    saveStateToNVS();
-}
+// =========================================================================
+// END OF FIRMWARE
+// =========================================================================
