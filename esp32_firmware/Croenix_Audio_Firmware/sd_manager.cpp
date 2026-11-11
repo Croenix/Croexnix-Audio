@@ -6,6 +6,16 @@ static bool sdMounted = false;
 void initSDManager() {
     DEBUG_PRINTLN("[SD] Initializing SD card...");
 
+    // Deselect TFT to avoid SPI bus conflict during SD init
+    pinMode(TFT_CS, OUTPUT);
+    digitalWrite(TFT_CS, HIGH);
+
+    pinMode(SD_CS, OUTPUT);
+    digitalWrite(SD_CS, HIGH);
+
+    // Initialize SPI SD Card with shared bus
+    SPI.begin(SD_SCK, SD_MISO, SD_MOSI, SD_CS);
+
     if (!SD.begin(SD_CS)) {
         DEBUG_PRINTLN("[SD] Card mount failed!");
         return;

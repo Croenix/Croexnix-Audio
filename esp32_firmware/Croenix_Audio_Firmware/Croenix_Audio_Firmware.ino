@@ -10,6 +10,7 @@
 #include "display_manager.h"
 #include "fm_radio.h"
 #include "sd_manager.h"
+#include "encoder_manager.h"
 
 // FreeRTOS Task Handles
 TaskHandle_t audioTaskHandle = nullptr;
@@ -74,14 +75,18 @@ void controlTask(void* parameter) {
     DEBUG_PRINTLN("[CONTROL TASK] Starting on Core 1...");
 
     // Initialize peripherals
+    initEncoderManager();
     initFMRadio();
     initSDManager();
 
     while (true) {
+        // Handle rotary encoder & buttons
+        updateEncoderManager();
+
         // Handle peripheral control and state updates
         updateSystemState();
 
-        vTaskDelay(pdMS_TO_TICKS(100));
+        vTaskDelay(pdMS_TO_TICKS(10));
     }
 }
 

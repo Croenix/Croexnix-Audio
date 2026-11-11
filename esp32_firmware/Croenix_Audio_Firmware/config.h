@@ -11,28 +11,33 @@
 
 // --- Hardware Pin Definitions ---
 
-// I2S DAC (CJMCU-5102)
-#define I2S_DOUT      22
-#define I2S_BCLK      26
-#define I2S_LRC       25
+// I2S DAC (CJMCU-5102 / PCM5102A)
+#define I2S_DOUT      27  // Revised DIN (GPIO 27 - resolved conflict with FM SCL)
+#define I2S_BCLK      26  // BCK
+#define I2S_LRC       25  // LCK / LRCK / WS
 
 // SPI Display (ST7735 1.8" TFT)
-#define TFT_MOSI      23
-#define TFT_SCLK      18
-#define TFT_CS        5
-#define TFT_DC        2
-#define TFT_RST       4
+#define TFT_MOSI      23  // Shared SPI MOSI (SDA on TFT)
+#define TFT_SCLK      18  // Shared SPI SCK
+#define TFT_CS        5   // Display Chip Select
+#define TFT_DC        2   // Data/Command (A0 / DC / RS)
+#define TFT_RST       4   // Display Reset
 
-// SD Card (SPI)
-#define SD_MISO       19
-#define SD_MOSI       23  // Shared with TFT
-#define SD_SCK        18  // Shared with TFT
-#define SD_CS         15
+// SD Card (SPI - Separate Blue MicroSD Module)
+#define SD_MISO       19  // SPI MISO (DO)
+#define SD_MOSI       23  // Shared SPI MOSI (DI)
+#define SD_SCK        18  // Shared SPI SCK (CLK)
+#define SD_CS         15  // SD Chip Select
 
 // FM Radio (Si4703 I2C)
-#define FM_SDA        21
-#define FM_SCL        22
-#define FM_RST        16
+#define FM_SDA        21  // I2C SDA (SDIO)
+#define FM_SCL        22  // I2C SCL (SCLK)
+#define FM_RST        16  // Si4703 Reset
+
+// Rotary Encoder (KY-040 Style)
+#define ENCODER_CLK   32  // Rotary Channel A (CLK)
+#define ENCODER_DT    33  // Rotary Channel B (DT)
+#define ENCODER_SW    17  // Encoder Push Button (SW)
 
 // --- System Configuration ---
 
