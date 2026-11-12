@@ -97,6 +97,37 @@ class _ConnectionStatusCardState extends State<ConnectionStatusCard> {
                     ),
                   ),
                 ),
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    ActionChip(
+                      backgroundColor: Colors.white.withOpacity(0.06),
+                      avatar: const Icon(Icons.wifi_tethering_rounded, size: 16, color: CroenixColors.primaryCyan),
+                      label: const Text('ESP32 Hotspot (192.168.4.1)', style: TextStyle(color: Colors.white70, fontSize: 11)),
+                      onPressed: () {
+                        ipController.text = '192.168.4.1';
+                      },
+                    ),
+                    ActionChip(
+                      backgroundColor: Colors.white.withOpacity(0.06),
+                      avatar: const Icon(Icons.usb_rounded, size: 16, color: CroenixColors.secondaryPurple),
+                      label: const Text('USB/Localhost (127.0.0.1)', style: TextStyle(color: Colors.white70, fontSize: 11)),
+                      onPressed: () {
+                        ipController.text = '127.0.0.1';
+                      },
+                    ),
+                    ActionChip(
+                      backgroundColor: Colors.white.withOpacity(0.06),
+                      avatar: const Icon(Icons.home_rounded, size: 16, color: CroenixColors.success),
+                      label: const Text('mDNS (croenix-audio.local)', style: TextStyle(color: Colors.white70, fontSize: 11)),
+                      onPressed: () {
+                        ipController.text = 'croenix-audio.local';
+                      },
+                    ),
+                  ],
+                ),
                 const SizedBox(height: 16),
                 Row(
                   children: [

@@ -11,6 +11,10 @@ struct DeviceState {
     // UI State Machine
     UIScreenState activeScreen = UI_SCREEN_BOOT_SPLASH;
     uint8_t selectedDiagModule = 0;       // 0: DAC, 1: FM, 2: SD Card, 3: System
+    uint8_t homeGridCursor = 0;           // 0: SD, 1: USB, 2: BT, 3: FM, 4: Web FM, 5: SoundCloud, 6: AUX, 7: More
+    uint8_t selectedPresetFM = 1;         // 0: 91.10, 1: 98.30, 2: 100.80, 3: 104.80
+    uint8_t selectedEQPreset = 1;         // 0: Flat, 1: Rock, 2: Pop, 3: Jazz
+    int8_t  eqBands[5] = {3, 5, 0, 4, 3}; // 60Hz, 250Hz, 1kHz, 4kHz, 16kHz
     bool needDisplayRedraw = true;
 
     // Audio & Source Management

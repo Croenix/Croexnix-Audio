@@ -267,44 +267,59 @@ bool switchAudioSource(AudioSource source) {
 // -------------------------------------------------------------------------
 
 void setEQPreset(uint8_t preset) {
-    int8_t bass = 0, treble = 0;
+    int8_t bass = 0, mid = 0, treble = 0;
 
     switch (preset) {
         case 0: // Flat
-            bass = 0; treble = 0;
+            bass = 0; mid = 0; treble = 0;
             break;
         case 1: // Rock
-            bass = 6; treble = 4;
+            bass = 5; mid = -1; treble = 4;
             break;
         case 2: // Pop
-            bass = 4; treble = 6;
+            bass = 3; mid = 2; treble = 4;
             break;
-        case 3: // Classical
-            bass = -2; treble = 5;
+        case 3: // Jazz
+            bass = 4; mid = 2; treble = 1;
             break;
-        case 4: // Jazz
-            bass = 3; treble = 3;
+        case 4: // Bass Boost
+            bass = 8; mid = 1; treble = -1;
             break;
-        case 5: // Bass Boost
-            bass = 10; treble = 0;
+        case 5: // Treble Boost
+            bass = -1; mid = 2; treble = 8;
             break;
-        case 6: // Treble Boost
-            bass = 0; treble = 10;
+        case 6: // Electronic
+            bass = 6; mid = 0; treble = 5;
+            break;
+        case 7: // Vocal Clarity
+            bass = -2; mid = 6; treble = 2;
             break;
         default:
-            bass = 0; treble = 0;
+            bass = 0; mid = 0; treble = 0;
+            break;
     }
 
     if (audioInitialized) {
-        audio.setTone(bass, treble, 0);
+        audio.setTone(bass, mid, treble);
     }
 
-    if (xSemaphoreTake(g_stateMutex, portMAX_DELAY) == pdTRUE) {
+    if (xSemaphoreTake(g_stateMutex, pdMS_TO_TICKS(50)) == pdTRUE) {
         g_deviceState.eqPreset = preset;
         xSemaphoreGive(g_stateMutex);
     }
 
-    DEBUG_PRINTF("[AUDIO] EQ preset: %d (Bass: %+d, Treble: %+d)\n", preset, bass, treble);
+    DEBUG_PRINTF("[AUDIO] EQ Preset %d applied (Bass:%+d, Mid:%+d, Treble:%+d)\n", preset, bass, mid, treble);
+}
+
+void setHardwareTone(int8_t bass, int8_t mid, int8_t treble) {
+    bass = constrain(bass, -10, 10);
+    mid = constrain(mid, -10, 10);
+    treble = constrain(treble, -10, 10);
+
+    if (audioInitialized) {
+        audio.setTone(bass, mid, treble);
+        DEBUG_PRINTF("[AUDIO] Custom Tone applied: Bass=%+d, Mid=%+d, Treble=%+d\n", bass, mid, treble);
+    }
 }
 
 uint8_t getEQPreset() {

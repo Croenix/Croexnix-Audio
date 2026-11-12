@@ -16,6 +16,7 @@ float getFMFrequency();
 
 void seekFMUp();
 void seekFMDown();
+void seekBestFMStation();
 void scanFMStations();
 
 // FM status

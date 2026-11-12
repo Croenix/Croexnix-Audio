@@ -173,11 +173,31 @@ void onWebSocketEvent(uint8_t num, WStype_t type, uint8_t* payload, size_t lengt
             else if (strcmp(command, "volume") == 0) handleVolumeCommand(doc);
             else if (strcmp(command, "source") == 0) handleSourceCommand(doc);
             else if (strcmp(command, "eq") == 0) handleEQCommand(doc);
+            else if (strcmp(command, "set_tone") == 0) {
+                int8_t b = doc["bass"] | 0;
+                int8_t m = doc["mid"] | 0;
+                int8_t t = doc["treble"] | 0;
+                setHardwareTone(b, m, t);
+            }
             else if (strcmp(command, "wifi_config") == 0) handleWiFiConfigCommand(doc);
             else if (strcmp(command, "scan_networks") == 0) handleScanNetworksCommand(doc);
             else if (strcmp(command, "file_list") == 0) handleFileListCommand(doc);
+            else if (strcmp(command, "track_list") == 0) handleTrackListCommand(doc);
+            else if (strcmp(command, "play_index") == 0) {
+                int idx = doc["index"] | 0;
+                switchAudioSource(SOURCE_SD_CARD);
+                g_deviceState.activeScreen = UI_SCREEN_NOW_PLAYING;
+                g_deviceState.needDisplayRedraw = true;
+                playSDTrack(idx);
+                broadcastDeviceState();
+                broadcastMetadata();
+            }
             else if (strcmp(command, "load_file") == 0) handleLoadFileCommand(doc);
             else if (strcmp(command, "fm_frequency") == 0) handleFMFrequencyCommand(doc);
+            else if (strcmp(command, "fm_seek_best") == 0) {
+                seekBestFMStation();
+                broadcastDeviceState();
+            }
             else if (strcmp(command, "stream_url") == 0 || strcmp(command, "play_stream") == 0) handleStreamURLCommand(doc);
             else if (strcmp(command, "next_track") == 0) {
                 nextTrack();
@@ -197,6 +217,12 @@ void onWebSocketEvent(uint8_t num, WStype_t type, uint8_t* payload, size_t lengt
                 broadcastDeviceState();
                 broadcastMetadata();
                 broadcastNetworkInfo();
+            }
+            else if (strcmp(command, "set_screen") == 0) {
+                int sc = doc["value"] | 1;
+                g_deviceState.activeScreen = (UIScreenState)sc;
+                g_deviceState.needDisplayRedraw = true;
+                broadcastDeviceState();
             }
             else if (strcmp(command, "reboot") == 0) {
                 DEBUG_PRINTLN("[WEBSOCKET] Reboot requested by client");
@@ -243,6 +269,26 @@ void handleVolumeCommand(JsonDocument& doc) {
 void handleSourceCommand(JsonDocument& doc) {
     int source = doc["value"];
     switchAudioSource((AudioSource)source);
+
+    // Contextual automatic screen switch to match active mode on TFT display
+    switch ((AudioSource)source) {
+        case SOURCE_SD_CARD:
+            g_deviceState.activeScreen = UI_SCREEN_NOW_PLAYING;
+            break;
+        case SOURCE_BLUETOOTH:
+            g_deviceState.activeScreen = UI_SCREEN_BLUETOOTH;
+            break;
+        case SOURCE_FM_RADIO:
+            g_deviceState.activeScreen = UI_SCREEN_FM_RADIO;
+            break;
+        case SOURCE_WEB_STREAM:
+            g_deviceState.activeScreen = UI_SCREEN_SOUNDCLOUD;
+            break;
+        default:
+            g_deviceState.activeScreen = UI_SCREEN_HOME;
+            break;
+    }
+    g_deviceState.needDisplayRedraw = true;
     broadcastDeviceState();
 }
 
@@ -300,6 +346,26 @@ void handleFileListCommand(JsonDocument& doc) {
 
     JsonArray files = response.createNestedArray("files");
     listSDFiles(path, files);
+
+    String output;
+    serializeJson(response, output);
+    webSocket.broadcastTXT(output);
+}
+
+void handleTrackListCommand(JsonDocument& doc) {
+    StaticJsonDocument<3072> response;
+    response["type"] = "track_list";
+    uint16_t total = getSDTotalTracks();
+    response["count"] = total;
+    response["current_track"] = g_deviceState.sdCurrentTrack;
+
+    JsonArray tracks = response.createNestedArray("tracks");
+    for (int i = 0; i < total && i < 60; i++) {
+        JsonObject trk = tracks.createNestedObject();
+        trk["index"] = i;
+        trk["name"] = getSDTrackName(i);
+        trk["path"] = getSDTrackPath(i);
+    }
 
     String output;
     serializeJson(response, output);

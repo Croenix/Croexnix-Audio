@@ -41,6 +41,7 @@ class DeviceState extends Equatable {
   final bool sdCardMounted;
   final int sdCardSize; // bytes
   final int sdCardUsed; // bytes
+  final int sdTotalTracks;
 
   // Bluetooth state
   final bool bluetoothConnected;
@@ -64,8 +65,11 @@ class DeviceState extends Equatable {
   final int heapUsagePercent; // 0-100%
   final int flashSize; // bytes
 
-  // EQ Preset
+  // EQ Preset & Hardware Tone
   final int eqPreset; // 0=Flat, 1=Rock, 2=Pop, etc.
+  final int eqBass;   // -10 to +10
+  final int eqMid;    // -10 to +10
+  final int eqTreble; // -10 to +10
 
   const DeviceState({
     this.currentSource = AudioSource.none,
@@ -91,6 +95,7 @@ class DeviceState extends Equatable {
     this.sdCardMounted = false,
     this.sdCardSize = 0,
     this.sdCardUsed = 0,
+    this.sdTotalTracks = 0,
     this.bluetoothConnected = false,
     this.bluetoothDevice = 'Croenix',
     this.deviceName = 'Croenix',
@@ -110,6 +115,9 @@ class DeviceState extends Equatable {
     this.heapUsagePercent = 0,
     this.flashSize = 0,
     this.eqPreset = 0,
+    this.eqBass = 0,
+    this.eqMid = 0,
+    this.eqTreble = 0,
   });
 
   // Human-readable formatting helpers
@@ -176,6 +184,8 @@ class DeviceState extends Equatable {
     bool? sdCardMounted,
     int? sdCardSize,
     int? sdCardUsed,
+    int? sdCardMountedState,
+    int? sdTotalTracks,
     bool? bluetoothConnected,
     String? bluetoothDevice,
     String? deviceName,
@@ -195,6 +205,9 @@ class DeviceState extends Equatable {
     int? heapUsagePercent,
     int? flashSize,
     int? eqPreset,
+    int? eqBass,
+    int? eqMid,
+    int? eqTreble,
   }) {
     return DeviceState(
       currentSource: currentSource ?? this.currentSource,
@@ -220,6 +233,7 @@ class DeviceState extends Equatable {
       sdCardMounted: sdCardMounted ?? this.sdCardMounted,
       sdCardSize: sdCardSize ?? this.sdCardSize,
       sdCardUsed: sdCardUsed ?? this.sdCardUsed,
+      sdTotalTracks: sdTotalTracks ?? this.sdTotalTracks,
       bluetoothConnected: bluetoothConnected ?? this.bluetoothConnected,
       bluetoothDevice: bluetoothDevice ?? this.bluetoothDevice,
       deviceName: deviceName ?? this.deviceName,
@@ -239,6 +253,9 @@ class DeviceState extends Equatable {
       heapUsagePercent: heapUsagePercent ?? this.heapUsagePercent,
       flashSize: flashSize ?? this.flashSize,
       eqPreset: eqPreset ?? this.eqPreset,
+      eqBass: eqBass ?? this.eqBass,
+      eqMid: eqMid ?? this.eqMid,
+      eqTreble: eqTreble ?? this.eqTreble,
     );
   }
 
@@ -275,6 +292,9 @@ class DeviceState extends Equatable {
       sdCardMounted: json.containsKey('sd_mounted') ? (json['sd_mounted'] as bool) : prev.sdCardMounted,
       sdCardSize: json.containsKey('sd_size') ? (json['sd_size'] as num).toInt() * 1024 : prev.sdCardSize,
       sdCardUsed: json.containsKey('sd_used') ? (json['sd_used'] as num).toInt() * 1024 : prev.sdCardUsed,
+      sdTotalTracks: json.containsKey('sd_total_tracks')
+          ? (json['sd_total_tracks'] as num).toInt()
+          : (json.containsKey('sd_tracks') ? (json['sd_tracks'] as num).toInt() : prev.sdTotalTracks),
       bluetoothConnected: json.containsKey('bt_connected') ? (json['bt_connected'] as bool) : prev.bluetoothConnected,
       bluetoothDevice: json['bt_device'] ?? prev.bluetoothDevice,
       deviceName: json['device_name'] ?? prev.deviceName,
@@ -298,6 +318,9 @@ class DeviceState extends Equatable {
               : prev.heapUsagePercent,
       flashSize: json.containsKey('flash_size') ? (json['flash_size'] as num).toInt() : prev.flashSize,
       eqPreset: json.containsKey('eq_preset') ? (json['eq_preset'] as num).toInt() : prev.eqPreset,
+      eqBass: json.containsKey('eq_bass') ? (json['eq_bass'] as num).toInt() : prev.eqBass,
+      eqMid: json.containsKey('eq_mid') ? (json['eq_mid'] as num).toInt() : prev.eqMid,
+      eqTreble: json.containsKey('eq_treble') ? (json['eq_treble'] as num).toInt() : prev.eqTreble,
     );
   }
 

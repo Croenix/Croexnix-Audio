@@ -30,6 +30,7 @@ void handleEQCommand(JsonDocument& doc);
 void handleWiFiConfigCommand(JsonDocument& doc);
 void handleScanNetworksCommand(JsonDocument& doc);
 void handleFileListCommand(JsonDocument& doc);
+void handleTrackListCommand(JsonDocument& doc);
 void handleLoadFileCommand(JsonDocument& doc);
 void handleFMFrequencyCommand(JsonDocument& doc);
 void handleStreamURLCommand(JsonDocument& doc);

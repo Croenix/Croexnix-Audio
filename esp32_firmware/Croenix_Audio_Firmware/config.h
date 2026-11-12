@@ -166,12 +166,23 @@ enum BluetoothState {
 
 enum UIScreenState {
     UI_SCREEN_BOOT_SPLASH = 0,
-    UI_SCREEN_HOME = 1,
-    UI_SCREEN_PLAYLIST = 2,
-    UI_SCREEN_SETTINGS = 3,
-    UI_SCREEN_DIAGNOSTICS = 4,
-    UI_SCREEN_HARDWARE_DIAGNOSTICS = 4,  // Alias for compatibility
-    UI_SCREEN_PROVISIONING_QR = 5
+    UI_SCREEN_HOME = 1,              // 8-Card Grid: SD, USB, BT, FM, Web FM, SoundCloud, AUX, More
+    UI_SCREEN_NOW_PLAYING = 2,       // SD Player: Album Art, FLAC badge, wave, controls
+    UI_SCREEN_PLAYLIST = 3,          // SD Card / Music list
+    UI_SCREEN_FM_RADIO = 4,          // FM Tuner: 98.30 MHz, spectrum, P1-P4 presets
+    UI_SCREEN_BLUETOOTH = 5,         // Bluetooth: Large glowing ring, OnePlus 12, controls
+    UI_SCREEN_WEB_FM = 6,            // Web FM: BBC Radio 1, Chillout, Trance
+    UI_SCREEN_SOUNDCLOUD = 7,        // SoundCloud: Trending, Likes, Playlists
+    UI_SCREEN_EQUALIZER = 8,         // 5-band vertical EQ sliders + presets
+    UI_SCREEN_USB = 9,               // USB drive screen
+    UI_SCREEN_AUX = 10,              // AUX in screen
+    UI_SCREEN_SETTINGS = 11,         // Settings menu
+    UI_SCREEN_ABOUT = 12,            // About Croenix Audio & ESP32
+    UI_SCREEN_VOLUME = 13,           // Volume HUD (68%, slider, level meter)
+    UI_SCREEN_SONG_INFO = 14,        // Song info detail
+    UI_SCREEN_DIAGNOSTICS = 15,      // Hardware Diagnostics
+    UI_SCREEN_HARDWARE_DIAGNOSTICS = 15,
+    UI_SCREEN_PROVISIONING_QR = 16
 };
 
 // -------------------------------------------------------------------------

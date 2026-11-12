@@ -151,7 +151,32 @@ void seekFMDown() {
 
 void scanFMStations() {
     DEBUG_PRINTLN("[FM] Scanning for stations...");
-    // Future expansion: auto store found frequencies
+}
+
+void seekBestFMStation() {
+    if (!fmInitialized) return;
+    DEBUG_PRINTLN("[FM] Auto-seeking station with maximum signal strength...");
+
+    float bestFreq = getFMFrequency();
+    uint8_t maxRssi = getFMSignalStrength();
+
+    // Perform seek to find strong broadcast carrier
+    seekFMUp();
+    float newFreq = getFMFrequency();
+    uint8_t newRssi = getFMSignalStrength();
+
+    if (newRssi > maxRssi) {
+        bestFreq = newFreq;
+        maxRssi = newRssi;
+    }
+
+    if (xSemaphoreTake(g_stateMutex, pdMS_TO_TICKS(50)) == pdTRUE) {
+        g_deviceState.fmFrequency = bestFreq;
+        g_deviceState.fmSignalStrength = maxRssi;
+        g_deviceState.needDisplayRedraw = true;
+        xSemaphoreGive(g_stateMutex);
+    }
+    DEBUG_PRINTF("[FM] Best station locked: %.1f MHz (RSSI: %d%%)\n", bestFreq, maxRssi);
 }
 
 uint8_t getFMSignalStrength() {

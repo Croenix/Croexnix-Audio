@@ -134,8 +134,13 @@ class _SoundCloudScreenState extends State<SoundCloudScreen>
             Icon(Icons.cloud_upload_rounded,
                 color: CroenixColors.soundCloudOrange),
             SizedBox(width: 10),
-            Text('Custom SoundCloud / Stream',
-                style: TextStyle(color: Colors.white, fontSize: 16)),
+            Expanded(
+              child: Text(
+                'Custom Stream / Track',
+                style: TextStyle(color: Colors.white, fontSize: 16),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
           ],
         ),
         content: SingleChildScrollView(

@@ -2,12 +2,136 @@
 **Version 3.0 (Production Release)**  
 High-Performance, Low-Memory Embedded Architecture for ESP32-WROOM-32 & Flutter Mobile Companion
 
+## 3. Physical TFT Display Architecture (Cyber Neon UI/UX)
+
+The 1.8" ST7735 color display (160x128 landscape) features a custom **Cyberpunk Glassmorphism** design engine matching the reference layout specifications across all 16 operating modes:
+
+### Visual Palette & Graphic Elements
+* **Background:** Obsidian Black/Navy (`0x0821` / `#0A0A14`)
+* **Card Containers:** Glass Dark Slate (`0x10A2`) with subtle borders (`0x3166`)
+* **Neon Accents:** Electric Magenta (`0xFAAA` / `#FF2E93`), Deep Violet (`0x8A1F`), Electric Cyan (`0x06BF`), Connected Green (`0x07E0`), Warm Amber (`0xFDA0`), SoundCloud Orange (`0xFD20`)
+* **Unified Status Bar:** `< Mode Name`, Real-Time Digital Clock (`10:24`), Bluetooth Icon, Wi-Fi Arc Icon, Battery Level Gauge
+
+### Complete 16-Screen Display Matrix
+
+| Screen Mode | Screen View | Primary Visual Elements | Encoder Controls |
+| :--- | :--- | :--- | :--- |
+| **0. Boot Splash** | `UI_SCREEN_BOOT_SPLASH` | Glowing circular musical emblem, "Croenix Audio", "Lossless Music Player", animated bottom neon waves | Automatic boot transition |
+| **1. Home Grid** | `UI_SCREEN_HOME` | 2x4 Glowing Mode Cards: `SD Card`, `USB`, `Bluetooth`, `FM Radio`, `Web FM`, `SoundCloud`, `AUX`, `More` + 3 carousel dots | **Turn:** Move pink highlight cursor<br>**Click:** Enter selected mode |
+| **2. SD Now Playing** | `UI_SCREEN_NOW_PLAYING` | Vinyl album art box, Track Title, Artist, `FLAC 44.1k/16b` badge, progress bar (0:51 / -1:42), real-time neon waveform, controls (`|<`, Play, `>|`) | **Turn:** Next / Prev track<br>**Click:** Play / Pause<br>**Hold (750ms):** Back to Home |
+| **3. SD Music List** | `UI_SCREEN_PLAYLIST` | 3-track playlist cards with artwork thumbnails, title, artist, duration (`3:21`, `5:14`, `4:37`), active track glowing border | **Turn:** Scroll tracks<br>**Click:** Play track |
+| **4. FM Radio** | `UI_SCREEN_FM_RADIO` | Large digital frequency (`98.30 MHz`), tuning arrows (`< >`), real-time broadcast spectrum visualizer, 4 preset capsules (`P1 91.1`, `P2 98.3`, `P3 100.8`, `P4 104.8`) | **Turn:** Tune ±0.1 MHz<br>**Click:** Cycle Presets P1-P4 |
+| **5. Bluetooth** | `UI_SCREEN_BLUETOOTH` | Large glowing circular Bluetooth ring with pulse waves, `● Connected`, `OnePlus 12`, transport buttons (`|<`, Play, `>|`) | **Turn:** Volume<br>**Click:** Play / Pause |
+| **6. Web FM** | `UI_SCREEN_WEB_FM` | Station cards: `BBC Radio 1` (Active glowing capsule), `Chillout Lounge`, `Trance FM` with station logos | **Turn:** Scroll stations<br>**Click:** Tune station |
+| **7. SoundCloud** | `UI_SCREEN_SOUNDCLOUD` | Orange cloud badge, 4 menu items: `🔥 Trending`, `♥ Your Likes`, `≡ Playlists`, `👥 Following` | **Turn:** Select category<br>**Click:** Open stream |
+| **8. Equalizer** | `UI_SCREEN_EQUALIZER` | `Equalizer` ON switch, 5-band vertical sliders (`60`, `250`, `1k`, `4k`, `16k`) with white slider beads, presets (`Flat`, `Rock`, `Pop`, `Jazz`) | **Turn:** Cycle Presets<br>**Click:** Apply Preset |
+| **9. USB Drive** | `UI_SCREEN_USB` | 3D USB drive vector graphic, "USB Drive", "128 GB \| 412 Songs", bottom neon wave | **Turn:** Volume<br>**Hold:** Back to Home |
+| **10. AUX In** | `UI_SCREEN_AUX` | 3.5mm stereo jack graphic, "AUX IN", "External Audio", live audio spectrum waveform | **Turn:** Volume<br>**Hold:** Back to Home |
+| **11. Settings** | `UI_SCREEN_SETTINGS` | 4 settings categories: `Audio`, `Display`, `Network`, `System` with navigation chevrons | **Turn:** Browse<br>**Click:** Select |
+| **12. About** | `UI_SCREEN_ABOUT` | ESP32 chip graphic, "Croenix Audio v3.0.0 Hi-Fi", supported codecs (`FLAC/WAV/MP3/AAC`), neon wave footer | **Click / Hold:** Back to Home |
+| **13. Song Info** | `UI_SCREEN_SONG_INFO` | Detailed ID3 view: Album Art, Title, Artist, Album, Year, `FLAC 44.1k / 16-bit` format capsule | **Click / Hold:** Back to Home |
+| **14. Volume HUD** | `UI_SCREEN_VOLUME` | Large readout (`68%`), `[-]` and `[+]`, glowing horizontal pink slider with round white thumb, speaker icon with 10-segment rising LED meter | **Turn:** Adjust Volume (0-100%) |
+| **15. Diagnostics** | `UI_SCREEN_HARDWARE_DIAGNOSTICS`| Diagnostic telemetry: DAC (I2S DMA), FM Radio (Si4703), SD Card (FAT32), ESP32 (Heap/Cores) | **Hold 8s:** Toggle Diag Screen |
+
 ---
 
 ## 1. Hardware Specifications & Components
 
 | Component | Part / Model | Purpose / Interface |
-| :--- | :--- | :--- |
+| :## 3. Physical TFT Display Architecture (Cyber Neon UI/UX)
+
+The 1.8" ST7735 color display (160x128 landscape) features a custom **Cyberpunk Glassmorphism** design engine matching the reference layout specifications across all 16 operating modes:
+
+### Visual Palette & Graphic Elements
+* **Background:** Obsidian Black/Navy (`0x0821` / `#0A0A14`)
+* **Card Containers:** Glass Dark Slate (`0x10A2`) with subtle borders (`0x3166`)
+* **Neon Accents:** Electric Magenta (`0xFAAA` / `#FF2E93`), Deep Violet (`0x8A1F`), Electric Cyan (`0x06BF`), Connected Green (`0x07E0`), Warm Amber (`0xFDA0`), SoundCloud Orange (`0xFD20`)
+* **Unified Status Bar:** `< Mode Name`, Real-Time Digital Clock (`10:24`), Bluetooth Icon, Wi-Fi Arc Icon, Battery Level Gauge
+
+### Complete 16-Screen Display Matrix
+
+| Screen Mode | Screen View | Primary Visual Elements | Encoder Controls |
+| :--- | :--- | :--- | :--- |
+| **0. Boot Splash** | `UI_SCREEN_BOOT_SPLASH` | Glowing circular musical emblem, "Croenix Audio", "Lossless Music Player", animated bottom neon waves | Automatic boot transition |
+| **1. Home Grid** | `UI_SCREEN_HOME` | 2x4 Glowing Mode Cards: `SD Card`, `USB`, `Bluetooth`, `FM Radio`, `Web FM`, `SoundCloud`, `AUX`, `More` + 3 carousel dots | **Turn:** Move pink highlight cursor<br>**Click:** Enter selected mode |
+| **2. SD Now Playing** | `UI_SCREEN_NOW_PLAYING` | Vinyl album art box, Track Title, Artist, `FLAC 44.1k/16b` badge, progress bar (0:51 / -1:42), real-time neon waveform, controls (`|<`, Play, `>|`) | **Turn:** Next / Prev track<br>**Click:** Play / Pause<br>**Hold (750ms):** Back to Home |
+| **3. SD Music List** | `UI_SCREEN_PLAYLIST` | 3-track playlist cards with artwork thumbnails, title, artist, duration (`3:21`, `5:14`, `4:37`), active track glowing border | **Turn:** Scroll tracks<br>**Click:** Play track |
+| **4. FM Radio** | `UI_SCREEN_FM_RADIO` | Large digital frequency (`98.30 MHz`), tuning arrows (`< >`), real-time broadcast spectrum visualizer, 4 preset capsules (`P1 91.1`, `P2 98.3`, `P3 100.8`, `P4 104.8`) | **Turn:** Tune ±0.1 MHz<br>**Click:** Cycle Presets P1-P4 |
+| **5. Bluetooth** | `UI_SCREEN_BLUETOOTH` | Large glowing circular Bluetooth ring with pulse waves, `● Connected`, `OnePlus 12`, transport buttons (`|<`, Play, `>|`) | **Turn:** Volume<br>**Click:** Play / Pause |
+| **6. Web FM** | `UI_SCREEN_WEB_FM` | Station cards: `BBC Radio 1` (Active glowing capsule), `Chillout Lounge`, `Trance FM` with station logos | **Turn:** Scroll stations<br>**Click:** Tune station |
+| **7. SoundCloud** | `UI_SCREEN_SOUNDCLOUD` | Orange cloud badge, 4 menu items: `🔥 Trending`, `♥ Your Likes`, `≡ Playlists`, `👥 Following` | **Turn:** Select category<br>**Click:** Open stream |
+| **8. Equalizer** | `UI_SCREEN_EQUALIZER` | `Equalizer` ON switch, 5-band vertical sliders (`60`, `250`, `1k`, `4k`, `16k`) with white slider beads, presets (`Flat`, `Rock`, `Pop`, `Jazz`) | **Turn:** Cycle Presets<br>**Click:** Apply Preset |
+| **9. USB Drive** | `UI_SCREEN_USB` | 3D USB drive vector graphic, "USB Drive", "128 GB \| 412 Songs", bottom neon wave | **Turn:** Volume<br>**Hold:** Back to Home |
+| **10. AUX In** | `UI_SCREEN_AUX` | 3.5mm stereo jack graphic, "AUX IN", "External Audio", live audio spectrum waveform | **Turn:** Volume<br>**Hold:** Back to Home |
+| **11. Settings** | `UI_SCREEN_SETTINGS` | 4 settings categories: `Audio`, `Display`, `Network`, `System` with navigation chevrons | **Turn:** Browse<br>**Click:** Select |
+| **12. About** | `UI_SCREEN_ABOUT` | ESP32 chip graphic, "Croenix Audio v3.0.0 Hi-Fi", supported codecs (`FLAC/WAV/MP3/AAC`), neon wave footer | **Click / Hold:** Back to Home |
+| **13. Song Info** | `UI_SCREEN_SONG_INFO` | Detailed ID3 view: Album Art, Title, Artist, Album, Year, `FLAC 44.1k / 16-bit` format capsule | **Click / Hold:** Back to Home |
+| **14. Volume HUD** | `UI_SCREEN_VOLUME` | Large readout (`68%`), `[-]` and `[+]`, glowing horizontal pink slider with round white thumb, speaker icon with 10-segment rising LED meter | **Turn:** Adjust Volume (0-100%) |
+| **15. Diagnostics** | `UI_SCREEN_HARDWARE_DIAGNOSTICS`| Diagnostic telemetry: DAC (I2S DMA), FM Radio (Si4703), SD Card (FAT32), ESP32 (Heap/Cores) | **Hold 8s:** Toggle Diag Screen |
+
+--- | :## 3. Physical TFT Display Architecture (Cyber Neon UI/UX)
+
+The 1.8" ST7735 color display (160x128 landscape) features a custom **Cyberpunk Glassmorphism** design engine matching the reference layout specifications across all 16 operating modes:
+
+### Visual Palette & Graphic Elements
+* **Background:** Obsidian Black/Navy (`0x0821` / `#0A0A14`)
+* **Card Containers:** Glass Dark Slate (`0x10A2`) with subtle borders (`0x3166`)
+* **Neon Accents:** Electric Magenta (`0xFAAA` / `#FF2E93`), Deep Violet (`0x8A1F`), Electric Cyan (`0x06BF`), Connected Green (`0x07E0`), Warm Amber (`0xFDA0`), SoundCloud Orange (`0xFD20`)
+* **Unified Status Bar:** `< Mode Name`, Real-Time Digital Clock (`10:24`), Bluetooth Icon, Wi-Fi Arc Icon, Battery Level Gauge
+
+### Complete 16-Screen Display Matrix
+
+| Screen Mode | Screen View | Primary Visual Elements | Encoder Controls |
+| :--- | :--- | :--- | :--- |
+| **0. Boot Splash** | `UI_SCREEN_BOOT_SPLASH` | Glowing circular musical emblem, "Croenix Audio", "Lossless Music Player", animated bottom neon waves | Automatic boot transition |
+| **1. Home Grid** | `UI_SCREEN_HOME` | 2x4 Glowing Mode Cards: `SD Card`, `USB`, `Bluetooth`, `FM Radio`, `Web FM`, `SoundCloud`, `AUX`, `More` + 3 carousel dots | **Turn:** Move pink highlight cursor<br>**Click:** Enter selected mode |
+| **2. SD Now Playing** | `UI_SCREEN_NOW_PLAYING` | Vinyl album art box, Track Title, Artist, `FLAC 44.1k/16b` badge, progress bar (0:51 / -1:42), real-time neon waveform, controls (`|<`, Play, `>|`) | **Turn:** Next / Prev track<br>**Click:** Play / Pause<br>**Hold (750ms):** Back to Home |
+| **3. SD Music List** | `UI_SCREEN_PLAYLIST` | 3-track playlist cards with artwork thumbnails, title, artist, duration (`3:21`, `5:14`, `4:37`), active track glowing border | **Turn:** Scroll tracks<br>**Click:** Play track |
+| **4. FM Radio** | `UI_SCREEN_FM_RADIO` | Large digital frequency (`98.30 MHz`), tuning arrows (`< >`), real-time broadcast spectrum visualizer, 4 preset capsules (`P1 91.1`, `P2 98.3`, `P3 100.8`, `P4 104.8`) | **Turn:** Tune ±0.1 MHz<br>**Click:** Cycle Presets P1-P4 |
+| **5. Bluetooth** | `UI_SCREEN_BLUETOOTH` | Large glowing circular Bluetooth ring with pulse waves, `● Connected`, `OnePlus 12`, transport buttons (`|<`, Play, `>|`) | **Turn:** Volume<br>**Click:** Play / Pause |
+| **6. Web FM** | `UI_SCREEN_WEB_FM` | Station cards: `BBC Radio 1` (Active glowing capsule), `Chillout Lounge`, `Trance FM` with station logos | **Turn:** Scroll stations<br>**Click:** Tune station |
+| **7. SoundCloud** | `UI_SCREEN_SOUNDCLOUD` | Orange cloud badge, 4 menu items: `🔥 Trending`, `♥ Your Likes`, `≡ Playlists`, `👥 Following` | **Turn:** Select category<br>**Click:** Open stream |
+| **8. Equalizer** | `UI_SCREEN_EQUALIZER` | `Equalizer` ON switch, 5-band vertical sliders (`60`, `250`, `1k`, `4k`, `16k`) with white slider beads, presets (`Flat`, `Rock`, `Pop`, `Jazz`) | **Turn:** Cycle Presets<br>**Click:** Apply Preset |
+| **9. USB Drive** | `UI_SCREEN_USB` | 3D USB drive vector graphic, "USB Drive", "128 GB \| 412 Songs", bottom neon wave | **Turn:** Volume<br>**Hold:** Back to Home |
+| **10. AUX In** | `UI_SCREEN_AUX` | 3.5mm stereo jack graphic, "AUX IN", "External Audio", live audio spectrum waveform | **Turn:** Volume<br>**Hold:** Back to Home |
+| **11. Settings** | `UI_SCREEN_SETTINGS` | 4 settings categories: `Audio`, `Display`, `Network`, `System` with navigation chevrons | **Turn:** Browse<br>**Click:** Select |
+| **12. About** | `UI_SCREEN_ABOUT` | ESP32 chip graphic, "Croenix Audio v3.0.0 Hi-Fi", supported codecs (`FLAC/WAV/MP3/AAC`), neon wave footer | **Click / Hold:** Back to Home |
+| **13. Song Info** | `UI_SCREEN_SONG_INFO` | Detailed ID3 view: Album Art, Title, Artist, Album, Year, `FLAC 44.1k / 16-bit` format capsule | **Click / Hold:** Back to Home |
+| **14. Volume HUD** | `UI_SCREEN_VOLUME` | Large readout (`68%`), `[-]` and `[+]`, glowing horizontal pink slider with round white thumb, speaker icon with 10-segment rising LED meter | **Turn:** Adjust Volume (0-100%) |
+| **15. Diagnostics** | `UI_SCREEN_HARDWARE_DIAGNOSTICS`| Diagnostic telemetry: DAC (I2S DMA), FM Radio (Si4703), SD Card (FAT32), ESP32 (Heap/Cores) | **Hold 8s:** Toggle Diag Screen |
+
+--- | :## 3. Physical TFT Display Architecture (Cyber Neon UI/UX)
+
+The 1.8" ST7735 color display (160x128 landscape) features a custom **Cyberpunk Glassmorphism** design engine matching the reference layout specifications across all 16 operating modes:
+
+### Visual Palette & Graphic Elements
+* **Background:** Obsidian Black/Navy (`0x0821` / `#0A0A14`)
+* **Card Containers:** Glass Dark Slate (`0x10A2`) with subtle borders (`0x3166`)
+* **Neon Accents:** Electric Magenta (`0xFAAA` / `#FF2E93`), Deep Violet (`0x8A1F`), Electric Cyan (`0x06BF`), Connected Green (`0x07E0`), Warm Amber (`0xFDA0`), SoundCloud Orange (`0xFD20`)
+* **Unified Status Bar:** `< Mode Name`, Real-Time Digital Clock (`10:24`), Bluetooth Icon, Wi-Fi Arc Icon, Battery Level Gauge
+
+### Complete 16-Screen Display Matrix
+
+| Screen Mode | Screen View | Primary Visual Elements | Encoder Controls |
+| :--- | :--- | :--- | :--- |
+| **0. Boot Splash** | `UI_SCREEN_BOOT_SPLASH` | Glowing circular musical emblem, "Croenix Audio", "Lossless Music Player", animated bottom neon waves | Automatic boot transition |
+| **1. Home Grid** | `UI_SCREEN_HOME` | 2x4 Glowing Mode Cards: `SD Card`, `USB`, `Bluetooth`, `FM Radio`, `Web FM`, `SoundCloud`, `AUX`, `More` + 3 carousel dots | **Turn:** Move pink highlight cursor<br>**Click:** Enter selected mode |
+| **2. SD Now Playing** | `UI_SCREEN_NOW_PLAYING` | Vinyl album art box, Track Title, Artist, `FLAC 44.1k/16b` badge, progress bar (0:51 / -1:42), real-time neon waveform, controls (`|<`, Play, `>|`) | **Turn:** Next / Prev track<br>**Click:** Play / Pause<br>**Hold (750ms):** Back to Home |
+| **3. SD Music List** | `UI_SCREEN_PLAYLIST` | 3-track playlist cards with artwork thumbnails, title, artist, duration (`3:21`, `5:14`, `4:37`), active track glowing border | **Turn:** Scroll tracks<br>**Click:** Play track |
+| **4. FM Radio** | `UI_SCREEN_FM_RADIO` | Large digital frequency (`98.30 MHz`), tuning arrows (`< >`), real-time broadcast spectrum visualizer, 4 preset capsules (`P1 91.1`, `P2 98.3`, `P3 100.8`, `P4 104.8`) | **Turn:** Tune ±0.1 MHz<br>**Click:** Cycle Presets P1-P4 |
+| **5. Bluetooth** | `UI_SCREEN_BLUETOOTH` | Large glowing circular Bluetooth ring with pulse waves, `● Connected`, `OnePlus 12`, transport buttons (`|<`, Play, `>|`) | **Turn:** Volume<br>**Click:** Play / Pause |
+| **6. Web FM** | `UI_SCREEN_WEB_FM` | Station cards: `BBC Radio 1` (Active glowing capsule), `Chillout Lounge`, `Trance FM` with station logos | **Turn:** Scroll stations<br>**Click:** Tune station |
+| **7. SoundCloud** | `UI_SCREEN_SOUNDCLOUD` | Orange cloud badge, 4 menu items: `🔥 Trending`, `♥ Your Likes`, `≡ Playlists`, `👥 Following` | **Turn:** Select category<br>**Click:** Open stream |
+| **8. Equalizer** | `UI_SCREEN_EQUALIZER` | `Equalizer` ON switch, 5-band vertical sliders (`60`, `250`, `1k`, `4k`, `16k`) with white slider beads, presets (`Flat`, `Rock`, `Pop`, `Jazz`) | **Turn:** Cycle Presets<br>**Click:** Apply Preset |
+| **9. USB Drive** | `UI_SCREEN_USB` | 3D USB drive vector graphic, "USB Drive", "128 GB \| 412 Songs", bottom neon wave | **Turn:** Volume<br>**Hold:** Back to Home |
+| **10. AUX In** | `UI_SCREEN_AUX` | 3.5mm stereo jack graphic, "AUX IN", "External Audio", live audio spectrum waveform | **Turn:** Volume<br>**Hold:** Back to Home |
+| **11. Settings** | `UI_SCREEN_SETTINGS` | 4 settings categories: `Audio`, `Display`, `Network`, `System` with navigation chevrons | **Turn:** Browse<br>**Click:** Select |
+| **12. About** | `UI_SCREEN_ABOUT` | ESP32 chip graphic, "Croenix Audio v3.0.0 Hi-Fi", supported codecs (`FLAC/WAV/MP3/AAC`), neon wave footer | **Click / Hold:** Back to Home |
+| **13. Song Info** | `UI_SCREEN_SONG_INFO` | Detailed ID3 view: Album Art, Title, Artist, Album, Year, `FLAC 44.1k / 16-bit` format capsule | **Click / Hold:** Back to Home |
+| **14. Volume HUD** | `UI_SCREEN_VOLUME` | Large readout (`68%`), `[-]` and `[+]`, glowing horizontal pink slider with round white thumb, speaker icon with 10-segment rising LED meter | **Turn:** Adjust Volume (0-100%) |
+| **15. Diagnostics** | `UI_SCREEN_HARDWARE_DIAGNOSTICS`| Diagnostic telemetry: DAC (I2S DMA), FM Radio (Si4703), SD Card (FAT32), ESP32 (Heap/Cores) | **Hold 8s:** Toggle Diag Screen |
+
+--- |
 | **Microcontroller** | ESP32-WROOM-32 (38-Pin DevKit) | Dual-core Tensilica Xtensa 240 MHz, 520 KB SRAM |
 | **I²S Hi-Fi DAC** | CJMCU-5102 / WCMCU (TI PCM5102A) | 32-bit / 384 kHz Stereo Audio DAC via I²S DMA |
 | **SPI Display** | 1.8" Color TFT LCD (ST7735) | 160x128 SPI color screen with cyber glassmorphism UI |
@@ -15,6 +139,37 @@ High-Performance, Low-Memory Embedded Architecture for ESP32-WROOM-32 & Flutter 
 | **FM Radio Tuner** | HW-322 (Silicon Labs Si4703) | 87.5–108 MHz RDS/FM receiver via I²C bus |
 | **Rotary Controller**| KY-040 5-Pin Rotary Encoder | Quadrature input with push-button interrupt logic |
 | **Audio Amplifier** | Gold A542 / TPA3116D2 Class-D | Stereo speaker drive |
+
+## 3. Physical TFT Display Architecture (Cyber Neon UI/UX)
+
+The 1.8" ST7735 color display (160x128 landscape) features a custom **Cyberpunk Glassmorphism** design engine matching the reference layout specifications across all 16 operating modes:
+
+### Visual Palette & Graphic Elements
+* **Background:** Obsidian Black/Navy (`0x0821` / `#0A0A14`)
+* **Card Containers:** Glass Dark Slate (`0x10A2`) with subtle borders (`0x3166`)
+* **Neon Accents:** Electric Magenta (`0xFAAA` / `#FF2E93`), Deep Violet (`0x8A1F`), Electric Cyan (`0x06BF`), Connected Green (`0x07E0`), Warm Amber (`0xFDA0`), SoundCloud Orange (`0xFD20`)
+* **Unified Status Bar:** `< Mode Name`, Real-Time Digital Clock (`10:24`), Bluetooth Icon, Wi-Fi Arc Icon, Battery Level Gauge
+
+### Complete 16-Screen Display Matrix
+
+| Screen Mode | Screen View | Primary Visual Elements | Encoder Controls |
+| :--- | :--- | :--- | :--- |
+| **0. Boot Splash** | `UI_SCREEN_BOOT_SPLASH` | Glowing circular musical emblem, "Croenix Audio", "Lossless Music Player", animated bottom neon waves | Automatic boot transition |
+| **1. Home Grid** | `UI_SCREEN_HOME` | 2x4 Glowing Mode Cards: `SD Card`, `USB`, `Bluetooth`, `FM Radio`, `Web FM`, `SoundCloud`, `AUX`, `More` + 3 carousel dots | **Turn:** Move pink highlight cursor<br>**Click:** Enter selected mode |
+| **2. SD Now Playing** | `UI_SCREEN_NOW_PLAYING` | Vinyl album art box, Track Title, Artist, `FLAC 44.1k/16b` badge, progress bar (0:51 / -1:42), real-time neon waveform, controls (`|<`, Play, `>|`) | **Turn:** Next / Prev track<br>**Click:** Play / Pause<br>**Hold (750ms):** Back to Home |
+| **3. SD Music List** | `UI_SCREEN_PLAYLIST` | 3-track playlist cards with artwork thumbnails, title, artist, duration (`3:21`, `5:14`, `4:37`), active track glowing border | **Turn:** Scroll tracks<br>**Click:** Play track |
+| **4. FM Radio** | `UI_SCREEN_FM_RADIO` | Large digital frequency (`98.30 MHz`), tuning arrows (`< >`), real-time broadcast spectrum visualizer, 4 preset capsules (`P1 91.1`, `P2 98.3`, `P3 100.8`, `P4 104.8`) | **Turn:** Tune ±0.1 MHz<br>**Click:** Cycle Presets P1-P4 |
+| **5. Bluetooth** | `UI_SCREEN_BLUETOOTH` | Large glowing circular Bluetooth ring with pulse waves, `● Connected`, `OnePlus 12`, transport buttons (`|<`, Play, `>|`) | **Turn:** Volume<br>**Click:** Play / Pause |
+| **6. Web FM** | `UI_SCREEN_WEB_FM` | Station cards: `BBC Radio 1` (Active glowing capsule), `Chillout Lounge`, `Trance FM` with station logos | **Turn:** Scroll stations<br>**Click:** Tune station |
+| **7. SoundCloud** | `UI_SCREEN_SOUNDCLOUD` | Orange cloud badge, 4 menu items: `🔥 Trending`, `♥ Your Likes`, `≡ Playlists`, `👥 Following` | **Turn:** Select category<br>**Click:** Open stream |
+| **8. Equalizer** | `UI_SCREEN_EQUALIZER` | `Equalizer` ON switch, 5-band vertical sliders (`60`, `250`, `1k`, `4k`, `16k`) with white slider beads, presets (`Flat`, `Rock`, `Pop`, `Jazz`) | **Turn:** Cycle Presets<br>**Click:** Apply Preset |
+| **9. USB Drive** | `UI_SCREEN_USB` | 3D USB drive vector graphic, "USB Drive", "128 GB \| 412 Songs", bottom neon wave | **Turn:** Volume<br>**Hold:** Back to Home |
+| **10. AUX In** | `UI_SCREEN_AUX` | 3.5mm stereo jack graphic, "AUX IN", "External Audio", live audio spectrum waveform | **Turn:** Volume<br>**Hold:** Back to Home |
+| **11. Settings** | `UI_SCREEN_SETTINGS` | 4 settings categories: `Audio`, `Display`, `Network`, `System` with navigation chevrons | **Turn:** Browse<br>**Click:** Select |
+| **12. About** | `UI_SCREEN_ABOUT` | ESP32 chip graphic, "Croenix Audio v3.0.0 Hi-Fi", supported codecs (`FLAC/WAV/MP3/AAC`), neon wave footer | **Click / Hold:** Back to Home |
+| **13. Song Info** | `UI_SCREEN_SONG_INFO` | Detailed ID3 view: Album Art, Title, Artist, Album, Year, `FLAC 44.1k / 16-bit` format capsule | **Click / Hold:** Back to Home |
+| **14. Volume HUD** | `UI_SCREEN_VOLUME` | Large readout (`68%`), `[-]` and `[+]`, glowing horizontal pink slider with round white thumb, speaker icon with 10-segment rising LED meter | **Turn:** Adjust Volume (0-100%) |
+| **15. Diagnostics** | `UI_SCREEN_HARDWARE_DIAGNOSTICS`| Diagnostic telemetry: DAC (I2S DMA), FM Radio (Si4703), SD Card (FAT32), ESP32 (Heap/Cores) | **Hold 8s:** Toggle Diag Screen |
 
 ---
 
@@ -27,13 +182,140 @@ High-Performance, Low-Memory Embedded Architecture for ESP32-WROOM-32 & Flutter 
 ### A. I²S DAC (TI PCM5102A / CJMCU-5102)
 
 | PCM5102A Pin | ESP32 Pin / Rail | Function | Notes |
+| :## 3. Physical TFT Display Architecture (Cyber Neon UI/UX)
+
+The 1.8" ST7735 color display (160x128 landscape) features a custom **Cyberpunk Glassmorphism** design engine matching the reference layout specifications across all 16 operating modes:
+
+### Visual Palette & Graphic Elements
+* **Background:** Obsidian Black/Navy (`0x0821` / `#0A0A14`)
+* **Card Containers:** Glass Dark Slate (`0x10A2`) with subtle borders (`0x3166`)
+* **Neon Accents:** Electric Magenta (`0xFAAA` / `#FF2E93`), Deep Violet (`0x8A1F`), Electric Cyan (`0x06BF`), Connected Green (`0x07E0`), Warm Amber (`0xFDA0`), SoundCloud Orange (`0xFD20`)
+* **Unified Status Bar:** `< Mode Name`, Real-Time Digital Clock (`10:24`), Bluetooth Icon, Wi-Fi Arc Icon, Battery Level Gauge
+
+### Complete 16-Screen Display Matrix
+
+| Screen Mode | Screen View | Primary Visual Elements | Encoder Controls |
 | :--- | :--- | :--- | :--- |
-| **VCC** | **VIN (5V)** or **3.3V** | Power rail | Connect to 5V (if module has 3.3V LDO) or 3.3V |
-| **GND** | **GND** | Power ground | Common system ground |
+| **0. Boot Splash** | `UI_SCREEN_BOOT_SPLASH` | Glowing circular musical emblem, "Croenix Audio", "Lossless Music Player", animated bottom neon waves | Automatic boot transition |
+| **1. Home Grid** | `UI_SCREEN_HOME` | 2x4 Glowing Mode Cards: `SD Card`, `USB`, `Bluetooth`, `FM Radio`, `Web FM`, `SoundCloud`, `AUX`, `More` + 3 carousel dots | **Turn:** Move pink highlight cursor<br>**Click:** Enter selected mode |
+| **2. SD Now Playing** | `UI_SCREEN_NOW_PLAYING` | Vinyl album art box, Track Title, Artist, `FLAC 44.1k/16b` badge, progress bar (0:51 / -1:42), real-time neon waveform, controls (`|<`, Play, `>|`) | **Turn:** Next / Prev track<br>**Click:** Play / Pause<br>**Hold (750ms):** Back to Home |
+| **3. SD Music List** | `UI_SCREEN_PLAYLIST` | 3-track playlist cards with artwork thumbnails, title, artist, duration (`3:21`, `5:14`, `4:37`), active track glowing border | **Turn:** Scroll tracks<br>**Click:** Play track |
+| **4. FM Radio** | `UI_SCREEN_FM_RADIO` | Large digital frequency (`98.30 MHz`), tuning arrows (`< >`), real-time broadcast spectrum visualizer, 4 preset capsules (`P1 91.1`, `P2 98.3`, `P3 100.8`, `P4 104.8`) | **Turn:** Tune ±0.1 MHz<br>**Click:** Cycle Presets P1-P4 |
+| **5. Bluetooth** | `UI_SCREEN_BLUETOOTH` | Large glowing circular Bluetooth ring with pulse waves, `● Connected`, `OnePlus 12`, transport buttons (`|<`, Play, `>|`) | **Turn:** Volume<br>**Click:** Play / Pause |
+| **6. Web FM** | `UI_SCREEN_WEB_FM` | Station cards: `BBC Radio 1` (Active glowing capsule), `Chillout Lounge`, `Trance FM` with station logos | **Turn:** Scroll stations<br>**Click:** Tune station |
+| **7. SoundCloud** | `UI_SCREEN_SOUNDCLOUD` | Orange cloud badge, 4 menu items: `🔥 Trending`, `♥ Your Likes`, `≡ Playlists`, `👥 Following` | **Turn:** Select category<br>**Click:** Open stream |
+| **8. Equalizer** | `UI_SCREEN_EQUALIZER` | `Equalizer` ON switch, 5-band vertical sliders (`60`, `250`, `1k`, `4k`, `16k`) with white slider beads, presets (`Flat`, `Rock`, `Pop`, `Jazz`) | **Turn:** Cycle Presets<br>**Click:** Apply Preset |
+| **9. USB Drive** | `UI_SCREEN_USB` | 3D USB drive vector graphic, "USB Drive", "128 GB \| 412 Songs", bottom neon wave | **Turn:** Volume<br>**Hold:** Back to Home |
+| **10. AUX In** | `UI_SCREEN_AUX` | 3.5mm stereo jack graphic, "AUX IN", "External Audio", live audio spectrum waveform | **Turn:** Volume<br>**Hold:** Back to Home |
+| **11. Settings** | `UI_SCREEN_SETTINGS` | 4 settings categories: `Audio`, `Display`, `Network`, `System` with navigation chevrons | **Turn:** Browse<br>**Click:** Select |
+| **12. About** | `UI_SCREEN_ABOUT` | ESP32 chip graphic, "Croenix Audio v3.0.0 Hi-Fi", supported codecs (`FLAC/WAV/MP3/AAC`), neon wave footer | **Click / Hold:** Back to Home |
+| **13. Song Info** | `UI_SCREEN_SONG_INFO` | Detailed ID3 view: Album Art, Title, Artist, Album, Year, `FLAC 44.1k / 16-bit` format capsule | **Click / Hold:** Back to Home |
+| **14. Volume HUD** | `UI_SCREEN_VOLUME` | Large readout (`68%`), `[-]` and `[+]`, glowing horizontal pink slider with round white thumb, speaker icon with 10-segment rising LED meter | **Turn:** Adjust Volume (0-100%) |
+| **15. Diagnostics** | `UI_SCREEN_HARDWARE_DIAGNOSTICS`| Diagnostic telemetry: DAC (I2S DMA), FM Radio (Si4703), SD Card (FAT32), ESP32 (Heap/Cores) | **Hold 8s:** Toggle Diag Screen |
+
+--- | :## 3. Physical TFT Display Architecture (Cyber Neon UI/UX)
+
+The 1.8" ST7735 color display (160x128 landscape) features a custom **Cyberpunk Glassmorphism** design engine matching the reference layout specifications across all 16 operating modes:
+
+### Visual Palette & Graphic Elements
+* **Background:** Obsidian Black/Navy (`0x0821` / `#0A0A14`)
+* **Card Containers:** Glass Dark Slate (`0x10A2`) with subtle borders (`0x3166`)
+* **Neon Accents:** Electric Magenta (`0xFAAA` / `#FF2E93`), Deep Violet (`0x8A1F`), Electric Cyan (`0x06BF`), Connected Green (`0x07E0`), Warm Amber (`0xFDA0`), SoundCloud Orange (`0xFD20`)
+* **Unified Status Bar:** `< Mode Name`, Real-Time Digital Clock (`10:24`), Bluetooth Icon, Wi-Fi Arc Icon, Battery Level Gauge
+
+### Complete 16-Screen Display Matrix
+
+| Screen Mode | Screen View | Primary Visual Elements | Encoder Controls |
+| :--- | :--- | :--- | :--- |
+| **0. Boot Splash** | `UI_SCREEN_BOOT_SPLASH` | Glowing circular musical emblem, "Croenix Audio", "Lossless Music Player", animated bottom neon waves | Automatic boot transition |
+| **1. Home Grid** | `UI_SCREEN_HOME` | 2x4 Glowing Mode Cards: `SD Card`, `USB`, `Bluetooth`, `FM Radio`, `Web FM`, `SoundCloud`, `AUX`, `More` + 3 carousel dots | **Turn:** Move pink highlight cursor<br>**Click:** Enter selected mode |
+| **2. SD Now Playing** | `UI_SCREEN_NOW_PLAYING` | Vinyl album art box, Track Title, Artist, `FLAC 44.1k/16b` badge, progress bar (0:51 / -1:42), real-time neon waveform, controls (`|<`, Play, `>|`) | **Turn:** Next / Prev track<br>**Click:** Play / Pause<br>**Hold (750ms):** Back to Home |
+| **3. SD Music List** | `UI_SCREEN_PLAYLIST` | 3-track playlist cards with artwork thumbnails, title, artist, duration (`3:21`, `5:14`, `4:37`), active track glowing border | **Turn:** Scroll tracks<br>**Click:** Play track |
+| **4. FM Radio** | `UI_SCREEN_FM_RADIO` | Large digital frequency (`98.30 MHz`), tuning arrows (`< >`), real-time broadcast spectrum visualizer, 4 preset capsules (`P1 91.1`, `P2 98.3`, `P3 100.8`, `P4 104.8`) | **Turn:** Tune ±0.1 MHz<br>**Click:** Cycle Presets P1-P4 |
+| **5. Bluetooth** | `UI_SCREEN_BLUETOOTH` | Large glowing circular Bluetooth ring with pulse waves, `● Connected`, `OnePlus 12`, transport buttons (`|<`, Play, `>|`) | **Turn:** Volume<br>**Click:** Play / Pause |
+| **6. Web FM** | `UI_SCREEN_WEB_FM` | Station cards: `BBC Radio 1` (Active glowing capsule), `Chillout Lounge`, `Trance FM` with station logos | **Turn:** Scroll stations<br>**Click:** Tune station |
+| **7. SoundCloud** | `UI_SCREEN_SOUNDCLOUD` | Orange cloud badge, 4 menu items: `🔥 Trending`, `♥ Your Likes`, `≡ Playlists`, `👥 Following` | **Turn:** Select category<br>**Click:** Open stream |
+| **8. Equalizer** | `UI_SCREEN_EQUALIZER` | `Equalizer` ON switch, 5-band vertical sliders (`60`, `250`, `1k`, `4k`, `16k`) with white slider beads, presets (`Flat`, `Rock`, `Pop`, `Jazz`) | **Turn:** Cycle Presets<br>**Click:** Apply Preset |
+| **9. USB Drive** | `UI_SCREEN_USB` | 3D USB drive vector graphic, "USB Drive", "128 GB \| 412 Songs", bottom neon wave | **Turn:** Volume<br>**Hold:** Back to Home |
+| **10. AUX In** | `UI_SCREEN_AUX` | 3.5mm stereo jack graphic, "AUX IN", "External Audio", live audio spectrum waveform | **Turn:** Volume<br>**Hold:** Back to Home |
+| **11. Settings** | `UI_SCREEN_SETTINGS` | 4 settings categories: `Audio`, `Display`, `Network`, `System` with navigation chevrons | **Turn:** Browse<br>**Click:** Select |
+| **12. About** | `UI_SCREEN_ABOUT` | ESP32 chip graphic, "Croenix Audio v3.0.0 Hi-Fi", supported codecs (`FLAC/WAV/MP3/AAC`), neon wave footer | **Click / Hold:** Back to Home |
+| **13. Song Info** | `UI_SCREEN_SONG_INFO` | Detailed ID3 view: Album Art, Title, Artist, Album, Year, `FLAC 44.1k / 16-bit` format capsule | **Click / Hold:** Back to Home |
+| **14. Volume HUD** | `UI_SCREEN_VOLUME` | Large readout (`68%`), `[-]` and `[+]`, glowing horizontal pink slider with round white thumb, speaker icon with 10-segment rising LED meter | **Turn:** Adjust Volume (0-100%) |
+| **15. Diagnostics** | `UI_SCREEN_HARDWARE_DIAGNOSTICS`| Diagnostic telemetry: DAC (I2S DMA), FM Radio (Si4703), SD Card (FAT32), ESP32 (Heap/Cores) | **Hold 8s:** Toggle Diag Screen |
+
+--- | :## 3. Physical TFT Display Architecture (Cyber Neon UI/UX)
+
+The 1.8" ST7735 color display (160x128 landscape) features a custom **Cyberpunk Glassmorphism** design engine matching the reference layout specifications across all 16 operating modes:
+
+### Visual Palette & Graphic Elements
+* **Background:** Obsidian Black/Navy (`0x0821` / `#0A0A14`)
+* **Card Containers:** Glass Dark Slate (`0x10A2`) with subtle borders (`0x3166`)
+* **Neon Accents:** Electric Magenta (`0xFAAA` / `#FF2E93`), Deep Violet (`0x8A1F`), Electric Cyan (`0x06BF`), Connected Green (`0x07E0`), Warm Amber (`0xFDA0`), SoundCloud Orange (`0xFD20`)
+* **Unified Status Bar:** `< Mode Name`, Real-Time Digital Clock (`10:24`), Bluetooth Icon, Wi-Fi Arc Icon, Battery Level Gauge
+
+### Complete 16-Screen Display Matrix
+
+| Screen Mode | Screen View | Primary Visual Elements | Encoder Controls |
+| :--- | :--- | :--- | :--- |
+| **0. Boot Splash** | `UI_SCREEN_BOOT_SPLASH` | Glowing circular musical emblem, "Croenix Audio", "Lossless Music Player", animated bottom neon waves | Automatic boot transition |
+| **1. Home Grid** | `UI_SCREEN_HOME` | 2x4 Glowing Mode Cards: `SD Card`, `USB`, `Bluetooth`, `FM Radio`, `Web FM`, `SoundCloud`, `AUX`, `More` + 3 carousel dots | **Turn:** Move pink highlight cursor<br>**Click:** Enter selected mode |
+| **2. SD Now Playing** | `UI_SCREEN_NOW_PLAYING` | Vinyl album art box, Track Title, Artist, `FLAC 44.1k/16b` badge, progress bar (0:51 / -1:42), real-time neon waveform, controls (`|<`, Play, `>|`) | **Turn:** Next / Prev track<br>**Click:** Play / Pause<br>**Hold (750ms):** Back to Home |
+| **3. SD Music List** | `UI_SCREEN_PLAYLIST` | 3-track playlist cards with artwork thumbnails, title, artist, duration (`3:21`, `5:14`, `4:37`), active track glowing border | **Turn:** Scroll tracks<br>**Click:** Play track |
+| **4. FM Radio** | `UI_SCREEN_FM_RADIO` | Large digital frequency (`98.30 MHz`), tuning arrows (`< >`), real-time broadcast spectrum visualizer, 4 preset capsules (`P1 91.1`, `P2 98.3`, `P3 100.8`, `P4 104.8`) | **Turn:** Tune ±0.1 MHz<br>**Click:** Cycle Presets P1-P4 |
+| **5. Bluetooth** | `UI_SCREEN_BLUETOOTH` | Large glowing circular Bluetooth ring with pulse waves, `● Connected`, `OnePlus 12`, transport buttons (`|<`, Play, `>|`) | **Turn:** Volume<br>**Click:** Play / Pause |
+| **6. Web FM** | `UI_SCREEN_WEB_FM` | Station cards: `BBC Radio 1` (Active glowing capsule), `Chillout Lounge`, `Trance FM` with station logos | **Turn:** Scroll stations<br>**Click:** Tune station |
+| **7. SoundCloud** | `UI_SCREEN_SOUNDCLOUD` | Orange cloud badge, 4 menu items: `🔥 Trending`, `♥ Your Likes`, `≡ Playlists`, `👥 Following` | **Turn:** Select category<br>**Click:** Open stream |
+| **8. Equalizer** | `UI_SCREEN_EQUALIZER` | `Equalizer` ON switch, 5-band vertical sliders (`60`, `250`, `1k`, `4k`, `16k`) with white slider beads, presets (`Flat`, `Rock`, `Pop`, `Jazz`) | **Turn:** Cycle Presets<br>**Click:** Apply Preset |
+| **9. USB Drive** | `UI_SCREEN_USB` | 3D USB drive vector graphic, "USB Drive", "128 GB \| 412 Songs", bottom neon wave | **Turn:** Volume<br>**Hold:** Back to Home |
+| **10. AUX In** | `UI_SCREEN_AUX` | 3.5mm stereo jack graphic, "AUX IN", "External Audio", live audio spectrum waveform | **Turn:** Volume<br>**Hold:** Back to Home |
+| **11. Settings** | `UI_SCREEN_SETTINGS` | 4 settings categories: `Audio`, `Display`, `Network`, `System` with navigation chevrons | **Turn:** Browse<br>**Click:** Select |
+| **12. About** | `UI_SCREEN_ABOUT` | ESP32 chip graphic, "Croenix Audio v3.0.0 Hi-Fi", supported codecs (`FLAC/WAV/MP3/AAC`), neon wave footer | **Click / Hold:** Back to Home |
+| **13. Song Info** | `UI_SCREEN_SONG_INFO` | Detailed ID3 view: Album Art, Title, Artist, Album, Year, `FLAC 44.1k / 16-bit` format capsule | **Click / Hold:** Back to Home |
+| **14. Volume HUD** | `UI_SCREEN_VOLUME` | Large readout (`68%`), `[-]` and `[+]`, glowing horizontal pink slider with round white thumb, speaker icon with 10-segment rising LED meter | **Turn:** Adjust Volume (0-100%) |
+| **15. Diagnostics** | `UI_SCREEN_HARDWARE_DIAGNOSTICS`| Diagnostic telemetry: DAC (I2S DMA), FM Radio (Si4703), SD Card (FAT32), ESP32 (Heap/Cores) | **Hold 8s:** Toggle Diag Screen |
+
+--- | :## 3. Physical TFT Display Architecture (Cyber Neon UI/UX)
+
+The 1.8" ST7735 color display (160x128 landscape) features a custom **Cyberpunk Glassmorphism** design engine matching the reference layout specifications across all 16 operating modes:
+
+### Visual Palette & Graphic Elements
+* **Background:** Obsidian Black/Navy (`0x0821` / `#0A0A14`)
+* **Card Containers:** Glass Dark Slate (`0x10A2`) with subtle borders (`0x3166`)
+* **Neon Accents:** Electric Magenta (`0xFAAA` / `#FF2E93`), Deep Violet (`0x8A1F`), Electric Cyan (`0x06BF`), Connected Green (`0x07E0`), Warm Amber (`0xFDA0`), SoundCloud Orange (`0xFD20`)
+* **Unified Status Bar:** `< Mode Name`, Real-Time Digital Clock (`10:24`), Bluetooth Icon, Wi-Fi Arc Icon, Battery Level Gauge
+
+### Complete 16-Screen Display Matrix
+
+| Screen Mode | Screen View | Primary Visual Elements | Encoder Controls |
+| :--- | :--- | :--- | :--- |
+| **0. Boot Splash** | `UI_SCREEN_BOOT_SPLASH` | Glowing circular musical emblem, "Croenix Audio", "Lossless Music Player", animated bottom neon waves | Automatic boot transition |
+| **1. Home Grid** | `UI_SCREEN_HOME` | 2x4 Glowing Mode Cards: `SD Card`, `USB`, `Bluetooth`, `FM Radio`, `Web FM`, `SoundCloud`, `AUX`, `More` + 3 carousel dots | **Turn:** Move pink highlight cursor<br>**Click:** Enter selected mode |
+| **2. SD Now Playing** | `UI_SCREEN_NOW_PLAYING` | Vinyl album art box, Track Title, Artist, `FLAC 44.1k/16b` badge, progress bar (0:51 / -1:42), real-time neon waveform, controls (`|<`, Play, `>|`) | **Turn:** Next / Prev track<br>**Click:** Play / Pause<br>**Hold (750ms):** Back to Home |
+| **3. SD Music List** | `UI_SCREEN_PLAYLIST` | 3-track playlist cards with artwork thumbnails, title, artist, duration (`3:21`, `5:14`, `4:37`), active track glowing border | **Turn:** Scroll tracks<br>**Click:** Play track |
+| **4. FM Radio** | `UI_SCREEN_FM_RADIO` | Large digital frequency (`98.30 MHz`), tuning arrows (`< >`), real-time broadcast spectrum visualizer, 4 preset capsules (`P1 91.1`, `P2 98.3`, `P3 100.8`, `P4 104.8`) | **Turn:** Tune ±0.1 MHz<br>**Click:** Cycle Presets P1-P4 |
+| **5. Bluetooth** | `UI_SCREEN_BLUETOOTH` | Large glowing circular Bluetooth ring with pulse waves, `● Connected`, `OnePlus 12`, transport buttons (`|<`, Play, `>|`) | **Turn:** Volume<br>**Click:** Play / Pause |
+| **6. Web FM** | `UI_SCREEN_WEB_FM` | Station cards: `BBC Radio 1` (Active glowing capsule), `Chillout Lounge`, `Trance FM` with station logos | **Turn:** Scroll stations<br>**Click:** Tune station |
+| **7. SoundCloud** | `UI_SCREEN_SOUNDCLOUD` | Orange cloud badge, 4 menu items: `🔥 Trending`, `♥ Your Likes`, `≡ Playlists`, `👥 Following` | **Turn:** Select category<br>**Click:** Open stream |
+| **8. Equalizer** | `UI_SCREEN_EQUALIZER` | `Equalizer` ON switch, 5-band vertical sliders (`60`, `250`, `1k`, `4k`, `16k`) with white slider beads, presets (`Flat`, `Rock`, `Pop`, `Jazz`) | **Turn:** Cycle Presets<br>**Click:** Apply Preset |
+| **9. USB Drive** | `UI_SCREEN_USB` | 3D USB drive vector graphic, "USB Drive", "128 GB \| 412 Songs", bottom neon wave | **Turn:** Volume<br>**Hold:** Back to Home |
+| **10. AUX In** | `UI_SCREEN_AUX` | 3.5mm stereo jack graphic, "AUX IN", "External Audio", live audio spectrum waveform | **Turn:** Volume<br>**Hold:** Back to Home |
+| **11. Settings** | `UI_SCREEN_SETTINGS` | 4 settings categories: `Audio`, `Display`, `Network`, `System` with navigation chevrons | **Turn:** Browse<br>**Click:** Select |
+| **12. About** | `UI_SCREEN_ABOUT` | ESP32 chip graphic, "Croenix Audio v3.0.0 Hi-Fi", supported codecs (`FLAC/WAV/MP3/AAC`), neon wave footer | **Click / Hold:** Back to Home |
+| **13. Song Info** | `UI_SCREEN_SONG_INFO` | Detailed ID3 view: Album Art, Title, Artist, Album, Year, `FLAC 44.1k / 16-bit` format capsule | **Click / Hold:** Back to Home |
+| **14. Volume HUD** | `UI_SCREEN_VOLUME` | Large readout (`68%`), `[-]` and `[+]`, glowing horizontal pink slider with round white thumb, speaker icon with 10-segment rising LED meter | **Turn:** Adjust Volume (0-100%) |
+| **15. Diagnostics** | `UI_SCREEN_HARDWARE_DIAGNOSTICS`| Diagnostic telemetry: DAC (I2S DMA), FM Radio (Si4703), SD Card (FAT32), ESP32 (Heap/Cores) | **Hold 8s:** Toggle Diag Screen |
+
+--- |
+| **VCC** | **VIN (5V)** | Module Power | Connect to 5V (module onboard 3.3V LDO regulator) |
+| **GND** | **GND** | Ground | Common system ground |
 | **BCK** | **GPIO 26** | I²S Bit Clock | Hardware Bit Clock |
 | **DIN** | **GPIO 25** | I²S Serial Data | Audio data payload |
 | **LCK** | **GPIO 22** | I²S Word Select (`WS` / `LRCK`) | Left/Right frame clock |
 | **SCK / SCL** | **GND** | Internal PLL Master Clock | **CRITICAL:** Tie to GND so PLL derives system clock from BCK |
+| **FLT** | **GND** | Filter Selection | Tie to GND (Normal latency / FIR filter) |
+| **DMP** | **GND** | De-emphasis Control | Tie to GND (De-emphasis disabled) |
+| **FMT** | **GND** | Audio Protocol Format | Tie to GND (Selects standard I²S format) |
 | **XMT** | **3.3V** | Soft-Unmute / Audio Enable | **CRITICAL:** Tie to 3.3V (HIGH) to unmute audio output |
 | **LOUT** | **AMP Left In** | Analog Left Channel | Route to Class-D amplifier |
 | **ROUT** | **AMP Right In** | Analog Right Channel | Route to Class-D amplifier |
@@ -41,7 +323,100 @@ High-Performance, Low-Memory Embedded Architecture for ESP32-WROOM-32 & Flutter 
 ### B. 1.8" ST7735 TFT Display (SPI)
 
 | ST7735 Pin | ESP32 Pin | Function / Description |
-| :--- | :--- | :--- |
+| :## 3. Physical TFT Display Architecture (Cyber Neon UI/UX)
+
+The 1.8" ST7735 color display (160x128 landscape) features a custom **Cyberpunk Glassmorphism** design engine matching the reference layout specifications across all 16 operating modes:
+
+### Visual Palette & Graphic Elements
+* **Background:** Obsidian Black/Navy (`0x0821` / `#0A0A14`)
+* **Card Containers:** Glass Dark Slate (`0x10A2`) with subtle borders (`0x3166`)
+* **Neon Accents:** Electric Magenta (`0xFAAA` / `#FF2E93`), Deep Violet (`0x8A1F`), Electric Cyan (`0x06BF`), Connected Green (`0x07E0`), Warm Amber (`0xFDA0`), SoundCloud Orange (`0xFD20`)
+* **Unified Status Bar:** `< Mode Name`, Real-Time Digital Clock (`10:24`), Bluetooth Icon, Wi-Fi Arc Icon, Battery Level Gauge
+
+### Complete 16-Screen Display Matrix
+
+| Screen Mode | Screen View | Primary Visual Elements | Encoder Controls |
+| :--- | :--- | :--- | :--- |
+| **0. Boot Splash** | `UI_SCREEN_BOOT_SPLASH` | Glowing circular musical emblem, "Croenix Audio", "Lossless Music Player", animated bottom neon waves | Automatic boot transition |
+| **1. Home Grid** | `UI_SCREEN_HOME` | 2x4 Glowing Mode Cards: `SD Card`, `USB`, `Bluetooth`, `FM Radio`, `Web FM`, `SoundCloud`, `AUX`, `More` + 3 carousel dots | **Turn:** Move pink highlight cursor<br>**Click:** Enter selected mode |
+| **2. SD Now Playing** | `UI_SCREEN_NOW_PLAYING` | Vinyl album art box, Track Title, Artist, `FLAC 44.1k/16b` badge, progress bar (0:51 / -1:42), real-time neon waveform, controls (`|<`, Play, `>|`) | **Turn:** Next / Prev track<br>**Click:** Play / Pause<br>**Hold (750ms):** Back to Home |
+| **3. SD Music List** | `UI_SCREEN_PLAYLIST` | 3-track playlist cards with artwork thumbnails, title, artist, duration (`3:21`, `5:14`, `4:37`), active track glowing border | **Turn:** Scroll tracks<br>**Click:** Play track |
+| **4. FM Radio** | `UI_SCREEN_FM_RADIO` | Large digital frequency (`98.30 MHz`), tuning arrows (`< >`), real-time broadcast spectrum visualizer, 4 preset capsules (`P1 91.1`, `P2 98.3`, `P3 100.8`, `P4 104.8`) | **Turn:** Tune ±0.1 MHz<br>**Click:** Cycle Presets P1-P4 |
+| **5. Bluetooth** | `UI_SCREEN_BLUETOOTH` | Large glowing circular Bluetooth ring with pulse waves, `● Connected`, `OnePlus 12`, transport buttons (`|<`, Play, `>|`) | **Turn:** Volume<br>**Click:** Play / Pause |
+| **6. Web FM** | `UI_SCREEN_WEB_FM` | Station cards: `BBC Radio 1` (Active glowing capsule), `Chillout Lounge`, `Trance FM` with station logos | **Turn:** Scroll stations<br>**Click:** Tune station |
+| **7. SoundCloud** | `UI_SCREEN_SOUNDCLOUD` | Orange cloud badge, 4 menu items: `🔥 Trending`, `♥ Your Likes`, `≡ Playlists`, `👥 Following` | **Turn:** Select category<br>**Click:** Open stream |
+| **8. Equalizer** | `UI_SCREEN_EQUALIZER` | `Equalizer` ON switch, 5-band vertical sliders (`60`, `250`, `1k`, `4k`, `16k`) with white slider beads, presets (`Flat`, `Rock`, `Pop`, `Jazz`) | **Turn:** Cycle Presets<br>**Click:** Apply Preset |
+| **9. USB Drive** | `UI_SCREEN_USB` | 3D USB drive vector graphic, "USB Drive", "128 GB \| 412 Songs", bottom neon wave | **Turn:** Volume<br>**Hold:** Back to Home |
+| **10. AUX In** | `UI_SCREEN_AUX` | 3.5mm stereo jack graphic, "AUX IN", "External Audio", live audio spectrum waveform | **Turn:** Volume<br>**Hold:** Back to Home |
+| **11. Settings** | `UI_SCREEN_SETTINGS` | 4 settings categories: `Audio`, `Display`, `Network`, `System` with navigation chevrons | **Turn:** Browse<br>**Click:** Select |
+| **12. About** | `UI_SCREEN_ABOUT` | ESP32 chip graphic, "Croenix Audio v3.0.0 Hi-Fi", supported codecs (`FLAC/WAV/MP3/AAC`), neon wave footer | **Click / Hold:** Back to Home |
+| **13. Song Info** | `UI_SCREEN_SONG_INFO` | Detailed ID3 view: Album Art, Title, Artist, Album, Year, `FLAC 44.1k / 16-bit` format capsule | **Click / Hold:** Back to Home |
+| **14. Volume HUD** | `UI_SCREEN_VOLUME` | Large readout (`68%`), `[-]` and `[+]`, glowing horizontal pink slider with round white thumb, speaker icon with 10-segment rising LED meter | **Turn:** Adjust Volume (0-100%) |
+| **15. Diagnostics** | `UI_SCREEN_HARDWARE_DIAGNOSTICS`| Diagnostic telemetry: DAC (I2S DMA), FM Radio (Si4703), SD Card (FAT32), ESP32 (Heap/Cores) | **Hold 8s:** Toggle Diag Screen |
+
+--- | :## 3. Physical TFT Display Architecture (Cyber Neon UI/UX)
+
+The 1.8" ST7735 color display (160x128 landscape) features a custom **Cyberpunk Glassmorphism** design engine matching the reference layout specifications across all 16 operating modes:
+
+### Visual Palette & Graphic Elements
+* **Background:** Obsidian Black/Navy (`0x0821` / `#0A0A14`)
+* **Card Containers:** Glass Dark Slate (`0x10A2`) with subtle borders (`0x3166`)
+* **Neon Accents:** Electric Magenta (`0xFAAA` / `#FF2E93`), Deep Violet (`0x8A1F`), Electric Cyan (`0x06BF`), Connected Green (`0x07E0`), Warm Amber (`0xFDA0`), SoundCloud Orange (`0xFD20`)
+* **Unified Status Bar:** `< Mode Name`, Real-Time Digital Clock (`10:24`), Bluetooth Icon, Wi-Fi Arc Icon, Battery Level Gauge
+
+### Complete 16-Screen Display Matrix
+
+| Screen Mode | Screen View | Primary Visual Elements | Encoder Controls |
+| :--- | :--- | :--- | :--- |
+| **0. Boot Splash** | `UI_SCREEN_BOOT_SPLASH` | Glowing circular musical emblem, "Croenix Audio", "Lossless Music Player", animated bottom neon waves | Automatic boot transition |
+| **1. Home Grid** | `UI_SCREEN_HOME` | 2x4 Glowing Mode Cards: `SD Card`, `USB`, `Bluetooth`, `FM Radio`, `Web FM`, `SoundCloud`, `AUX`, `More` + 3 carousel dots | **Turn:** Move pink highlight cursor<br>**Click:** Enter selected mode |
+| **2. SD Now Playing** | `UI_SCREEN_NOW_PLAYING` | Vinyl album art box, Track Title, Artist, `FLAC 44.1k/16b` badge, progress bar (0:51 / -1:42), real-time neon waveform, controls (`|<`, Play, `>|`) | **Turn:** Next / Prev track<br>**Click:** Play / Pause<br>**Hold (750ms):** Back to Home |
+| **3. SD Music List** | `UI_SCREEN_PLAYLIST` | 3-track playlist cards with artwork thumbnails, title, artist, duration (`3:21`, `5:14`, `4:37`), active track glowing border | **Turn:** Scroll tracks<br>**Click:** Play track |
+| **4. FM Radio** | `UI_SCREEN_FM_RADIO` | Large digital frequency (`98.30 MHz`), tuning arrows (`< >`), real-time broadcast spectrum visualizer, 4 preset capsules (`P1 91.1`, `P2 98.3`, `P3 100.8`, `P4 104.8`) | **Turn:** Tune ±0.1 MHz<br>**Click:** Cycle Presets P1-P4 |
+| **5. Bluetooth** | `UI_SCREEN_BLUETOOTH` | Large glowing circular Bluetooth ring with pulse waves, `● Connected`, `OnePlus 12`, transport buttons (`|<`, Play, `>|`) | **Turn:** Volume<br>**Click:** Play / Pause |
+| **6. Web FM** | `UI_SCREEN_WEB_FM` | Station cards: `BBC Radio 1` (Active glowing capsule), `Chillout Lounge`, `Trance FM` with station logos | **Turn:** Scroll stations<br>**Click:** Tune station |
+| **7. SoundCloud** | `UI_SCREEN_SOUNDCLOUD` | Orange cloud badge, 4 menu items: `🔥 Trending`, `♥ Your Likes`, `≡ Playlists`, `👥 Following` | **Turn:** Select category<br>**Click:** Open stream |
+| **8. Equalizer** | `UI_SCREEN_EQUALIZER` | `Equalizer` ON switch, 5-band vertical sliders (`60`, `250`, `1k`, `4k`, `16k`) with white slider beads, presets (`Flat`, `Rock`, `Pop`, `Jazz`) | **Turn:** Cycle Presets<br>**Click:** Apply Preset |
+| **9. USB Drive** | `UI_SCREEN_USB` | 3D USB drive vector graphic, "USB Drive", "128 GB \| 412 Songs", bottom neon wave | **Turn:** Volume<br>**Hold:** Back to Home |
+| **10. AUX In** | `UI_SCREEN_AUX` | 3.5mm stereo jack graphic, "AUX IN", "External Audio", live audio spectrum waveform | **Turn:** Volume<br>**Hold:** Back to Home |
+| **11. Settings** | `UI_SCREEN_SETTINGS` | 4 settings categories: `Audio`, `Display`, `Network`, `System` with navigation chevrons | **Turn:** Browse<br>**Click:** Select |
+| **12. About** | `UI_SCREEN_ABOUT` | ESP32 chip graphic, "Croenix Audio v3.0.0 Hi-Fi", supported codecs (`FLAC/WAV/MP3/AAC`), neon wave footer | **Click / Hold:** Back to Home |
+| **13. Song Info** | `UI_SCREEN_SONG_INFO` | Detailed ID3 view: Album Art, Title, Artist, Album, Year, `FLAC 44.1k / 16-bit` format capsule | **Click / Hold:** Back to Home |
+| **14. Volume HUD** | `UI_SCREEN_VOLUME` | Large readout (`68%`), `[-]` and `[+]`, glowing horizontal pink slider with round white thumb, speaker icon with 10-segment rising LED meter | **Turn:** Adjust Volume (0-100%) |
+| **15. Diagnostics** | `UI_SCREEN_HARDWARE_DIAGNOSTICS`| Diagnostic telemetry: DAC (I2S DMA), FM Radio (Si4703), SD Card (FAT32), ESP32 (Heap/Cores) | **Hold 8s:** Toggle Diag Screen |
+
+--- | :## 3. Physical TFT Display Architecture (Cyber Neon UI/UX)
+
+The 1.8" ST7735 color display (160x128 landscape) features a custom **Cyberpunk Glassmorphism** design engine matching the reference layout specifications across all 16 operating modes:
+
+### Visual Palette & Graphic Elements
+* **Background:** Obsidian Black/Navy (`0x0821` / `#0A0A14`)
+* **Card Containers:** Glass Dark Slate (`0x10A2`) with subtle borders (`0x3166`)
+* **Neon Accents:** Electric Magenta (`0xFAAA` / `#FF2E93`), Deep Violet (`0x8A1F`), Electric Cyan (`0x06BF`), Connected Green (`0x07E0`), Warm Amber (`0xFDA0`), SoundCloud Orange (`0xFD20`)
+* **Unified Status Bar:** `< Mode Name`, Real-Time Digital Clock (`10:24`), Bluetooth Icon, Wi-Fi Arc Icon, Battery Level Gauge
+
+### Complete 16-Screen Display Matrix
+
+| Screen Mode | Screen View | Primary Visual Elements | Encoder Controls |
+| :--- | :--- | :--- | :--- |
+| **0. Boot Splash** | `UI_SCREEN_BOOT_SPLASH` | Glowing circular musical emblem, "Croenix Audio", "Lossless Music Player", animated bottom neon waves | Automatic boot transition |
+| **1. Home Grid** | `UI_SCREEN_HOME` | 2x4 Glowing Mode Cards: `SD Card`, `USB`, `Bluetooth`, `FM Radio`, `Web FM`, `SoundCloud`, `AUX`, `More` + 3 carousel dots | **Turn:** Move pink highlight cursor<br>**Click:** Enter selected mode |
+| **2. SD Now Playing** | `UI_SCREEN_NOW_PLAYING` | Vinyl album art box, Track Title, Artist, `FLAC 44.1k/16b` badge, progress bar (0:51 / -1:42), real-time neon waveform, controls (`|<`, Play, `>|`) | **Turn:** Next / Prev track<br>**Click:** Play / Pause<br>**Hold (750ms):** Back to Home |
+| **3. SD Music List** | `UI_SCREEN_PLAYLIST` | 3-track playlist cards with artwork thumbnails, title, artist, duration (`3:21`, `5:14`, `4:37`), active track glowing border | **Turn:** Scroll tracks<br>**Click:** Play track |
+| **4. FM Radio** | `UI_SCREEN_FM_RADIO` | Large digital frequency (`98.30 MHz`), tuning arrows (`< >`), real-time broadcast spectrum visualizer, 4 preset capsules (`P1 91.1`, `P2 98.3`, `P3 100.8`, `P4 104.8`) | **Turn:** Tune ±0.1 MHz<br>**Click:** Cycle Presets P1-P4 |
+| **5. Bluetooth** | `UI_SCREEN_BLUETOOTH` | Large glowing circular Bluetooth ring with pulse waves, `● Connected`, `OnePlus 12`, transport buttons (`|<`, Play, `>|`) | **Turn:** Volume<br>**Click:** Play / Pause |
+| **6. Web FM** | `UI_SCREEN_WEB_FM` | Station cards: `BBC Radio 1` (Active glowing capsule), `Chillout Lounge`, `Trance FM` with station logos | **Turn:** Scroll stations<br>**Click:** Tune station |
+| **7. SoundCloud** | `UI_SCREEN_SOUNDCLOUD` | Orange cloud badge, 4 menu items: `🔥 Trending`, `♥ Your Likes`, `≡ Playlists`, `👥 Following` | **Turn:** Select category<br>**Click:** Open stream |
+| **8. Equalizer** | `UI_SCREEN_EQUALIZER` | `Equalizer` ON switch, 5-band vertical sliders (`60`, `250`, `1k`, `4k`, `16k`) with white slider beads, presets (`Flat`, `Rock`, `Pop`, `Jazz`) | **Turn:** Cycle Presets<br>**Click:** Apply Preset |
+| **9. USB Drive** | `UI_SCREEN_USB` | 3D USB drive vector graphic, "USB Drive", "128 GB \| 412 Songs", bottom neon wave | **Turn:** Volume<br>**Hold:** Back to Home |
+| **10. AUX In** | `UI_SCREEN_AUX` | 3.5mm stereo jack graphic, "AUX IN", "External Audio", live audio spectrum waveform | **Turn:** Volume<br>**Hold:** Back to Home |
+| **11. Settings** | `UI_SCREEN_SETTINGS` | 4 settings categories: `Audio`, `Display`, `Network`, `System` with navigation chevrons | **Turn:** Browse<br>**Click:** Select |
+| **12. About** | `UI_SCREEN_ABOUT` | ESP32 chip graphic, "Croenix Audio v3.0.0 Hi-Fi", supported codecs (`FLAC/WAV/MP3/AAC`), neon wave footer | **Click / Hold:** Back to Home |
+| **13. Song Info** | `UI_SCREEN_SONG_INFO` | Detailed ID3 view: Album Art, Title, Artist, Album, Year, `FLAC 44.1k / 16-bit` format capsule | **Click / Hold:** Back to Home |
+| **14. Volume HUD** | `UI_SCREEN_VOLUME` | Large readout (`68%`), `[-]` and `[+]`, glowing horizontal pink slider with round white thumb, speaker icon with 10-segment rising LED meter | **Turn:** Adjust Volume (0-100%) |
+| **15. Diagnostics** | `UI_SCREEN_HARDWARE_DIAGNOSTICS`| Diagnostic telemetry: DAC (I2S DMA), FM Radio (Si4703), SD Card (FAT32), ESP32 (Heap/Cores) | **Hold 8s:** Toggle Diag Screen |
+
+--- |
 | **VCC** | **3.3V** | Display logic power |
 | **GND** | **GND** | Display ground |
 | **CS** | **GPIO 5** | Dedicated Display Chip Select |
@@ -54,7 +429,100 @@ High-Performance, Low-Memory Embedded Architecture for ESP32-WROOM-32 & Flutter 
 ### C. MicroSD Card Adapter (SPI - Shared Bus with TFT)
 
 | MicroSD Module Pin | ESP32 Pin | Function / Description |
-| :--- | :--- | :--- |
+| :## 3. Physical TFT Display Architecture (Cyber Neon UI/UX)
+
+The 1.8" ST7735 color display (160x128 landscape) features a custom **Cyberpunk Glassmorphism** design engine matching the reference layout specifications across all 16 operating modes:
+
+### Visual Palette & Graphic Elements
+* **Background:** Obsidian Black/Navy (`0x0821` / `#0A0A14`)
+* **Card Containers:** Glass Dark Slate (`0x10A2`) with subtle borders (`0x3166`)
+* **Neon Accents:** Electric Magenta (`0xFAAA` / `#FF2E93`), Deep Violet (`0x8A1F`), Electric Cyan (`0x06BF`), Connected Green (`0x07E0`), Warm Amber (`0xFDA0`), SoundCloud Orange (`0xFD20`)
+* **Unified Status Bar:** `< Mode Name`, Real-Time Digital Clock (`10:24`), Bluetooth Icon, Wi-Fi Arc Icon, Battery Level Gauge
+
+### Complete 16-Screen Display Matrix
+
+| Screen Mode | Screen View | Primary Visual Elements | Encoder Controls |
+| :--- | :--- | :--- | :--- |
+| **0. Boot Splash** | `UI_SCREEN_BOOT_SPLASH` | Glowing circular musical emblem, "Croenix Audio", "Lossless Music Player", animated bottom neon waves | Automatic boot transition |
+| **1. Home Grid** | `UI_SCREEN_HOME` | 2x4 Glowing Mode Cards: `SD Card`, `USB`, `Bluetooth`, `FM Radio`, `Web FM`, `SoundCloud`, `AUX`, `More` + 3 carousel dots | **Turn:** Move pink highlight cursor<br>**Click:** Enter selected mode |
+| **2. SD Now Playing** | `UI_SCREEN_NOW_PLAYING` | Vinyl album art box, Track Title, Artist, `FLAC 44.1k/16b` badge, progress bar (0:51 / -1:42), real-time neon waveform, controls (`|<`, Play, `>|`) | **Turn:** Next / Prev track<br>**Click:** Play / Pause<br>**Hold (750ms):** Back to Home |
+| **3. SD Music List** | `UI_SCREEN_PLAYLIST` | 3-track playlist cards with artwork thumbnails, title, artist, duration (`3:21`, `5:14`, `4:37`), active track glowing border | **Turn:** Scroll tracks<br>**Click:** Play track |
+| **4. FM Radio** | `UI_SCREEN_FM_RADIO` | Large digital frequency (`98.30 MHz`), tuning arrows (`< >`), real-time broadcast spectrum visualizer, 4 preset capsules (`P1 91.1`, `P2 98.3`, `P3 100.8`, `P4 104.8`) | **Turn:** Tune ±0.1 MHz<br>**Click:** Cycle Presets P1-P4 |
+| **5. Bluetooth** | `UI_SCREEN_BLUETOOTH` | Large glowing circular Bluetooth ring with pulse waves, `● Connected`, `OnePlus 12`, transport buttons (`|<`, Play, `>|`) | **Turn:** Volume<br>**Click:** Play / Pause |
+| **6. Web FM** | `UI_SCREEN_WEB_FM` | Station cards: `BBC Radio 1` (Active glowing capsule), `Chillout Lounge`, `Trance FM` with station logos | **Turn:** Scroll stations<br>**Click:** Tune station |
+| **7. SoundCloud** | `UI_SCREEN_SOUNDCLOUD` | Orange cloud badge, 4 menu items: `🔥 Trending`, `♥ Your Likes`, `≡ Playlists`, `👥 Following` | **Turn:** Select category<br>**Click:** Open stream |
+| **8. Equalizer** | `UI_SCREEN_EQUALIZER` | `Equalizer` ON switch, 5-band vertical sliders (`60`, `250`, `1k`, `4k`, `16k`) with white slider beads, presets (`Flat`, `Rock`, `Pop`, `Jazz`) | **Turn:** Cycle Presets<br>**Click:** Apply Preset |
+| **9. USB Drive** | `UI_SCREEN_USB` | 3D USB drive vector graphic, "USB Drive", "128 GB \| 412 Songs", bottom neon wave | **Turn:** Volume<br>**Hold:** Back to Home |
+| **10. AUX In** | `UI_SCREEN_AUX` | 3.5mm stereo jack graphic, "AUX IN", "External Audio", live audio spectrum waveform | **Turn:** Volume<br>**Hold:** Back to Home |
+| **11. Settings** | `UI_SCREEN_SETTINGS` | 4 settings categories: `Audio`, `Display`, `Network`, `System` with navigation chevrons | **Turn:** Browse<br>**Click:** Select |
+| **12. About** | `UI_SCREEN_ABOUT` | ESP32 chip graphic, "Croenix Audio v3.0.0 Hi-Fi", supported codecs (`FLAC/WAV/MP3/AAC`), neon wave footer | **Click / Hold:** Back to Home |
+| **13. Song Info** | `UI_SCREEN_SONG_INFO` | Detailed ID3 view: Album Art, Title, Artist, Album, Year, `FLAC 44.1k / 16-bit` format capsule | **Click / Hold:** Back to Home |
+| **14. Volume HUD** | `UI_SCREEN_VOLUME` | Large readout (`68%`), `[-]` and `[+]`, glowing horizontal pink slider with round white thumb, speaker icon with 10-segment rising LED meter | **Turn:** Adjust Volume (0-100%) |
+| **15. Diagnostics** | `UI_SCREEN_HARDWARE_DIAGNOSTICS`| Diagnostic telemetry: DAC (I2S DMA), FM Radio (Si4703), SD Card (FAT32), ESP32 (Heap/Cores) | **Hold 8s:** Toggle Diag Screen |
+
+--- | :## 3. Physical TFT Display Architecture (Cyber Neon UI/UX)
+
+The 1.8" ST7735 color display (160x128 landscape) features a custom **Cyberpunk Glassmorphism** design engine matching the reference layout specifications across all 16 operating modes:
+
+### Visual Palette & Graphic Elements
+* **Background:** Obsidian Black/Navy (`0x0821` / `#0A0A14`)
+* **Card Containers:** Glass Dark Slate (`0x10A2`) with subtle borders (`0x3166`)
+* **Neon Accents:** Electric Magenta (`0xFAAA` / `#FF2E93`), Deep Violet (`0x8A1F`), Electric Cyan (`0x06BF`), Connected Green (`0x07E0`), Warm Amber (`0xFDA0`), SoundCloud Orange (`0xFD20`)
+* **Unified Status Bar:** `< Mode Name`, Real-Time Digital Clock (`10:24`), Bluetooth Icon, Wi-Fi Arc Icon, Battery Level Gauge
+
+### Complete 16-Screen Display Matrix
+
+| Screen Mode | Screen View | Primary Visual Elements | Encoder Controls |
+| :--- | :--- | :--- | :--- |
+| **0. Boot Splash** | `UI_SCREEN_BOOT_SPLASH` | Glowing circular musical emblem, "Croenix Audio", "Lossless Music Player", animated bottom neon waves | Automatic boot transition |
+| **1. Home Grid** | `UI_SCREEN_HOME` | 2x4 Glowing Mode Cards: `SD Card`, `USB`, `Bluetooth`, `FM Radio`, `Web FM`, `SoundCloud`, `AUX`, `More` + 3 carousel dots | **Turn:** Move pink highlight cursor<br>**Click:** Enter selected mode |
+| **2. SD Now Playing** | `UI_SCREEN_NOW_PLAYING` | Vinyl album art box, Track Title, Artist, `FLAC 44.1k/16b` badge, progress bar (0:51 / -1:42), real-time neon waveform, controls (`|<`, Play, `>|`) | **Turn:** Next / Prev track<br>**Click:** Play / Pause<br>**Hold (750ms):** Back to Home |
+| **3. SD Music List** | `UI_SCREEN_PLAYLIST` | 3-track playlist cards with artwork thumbnails, title, artist, duration (`3:21`, `5:14`, `4:37`), active track glowing border | **Turn:** Scroll tracks<br>**Click:** Play track |
+| **4. FM Radio** | `UI_SCREEN_FM_RADIO` | Large digital frequency (`98.30 MHz`), tuning arrows (`< >`), real-time broadcast spectrum visualizer, 4 preset capsules (`P1 91.1`, `P2 98.3`, `P3 100.8`, `P4 104.8`) | **Turn:** Tune ±0.1 MHz<br>**Click:** Cycle Presets P1-P4 |
+| **5. Bluetooth** | `UI_SCREEN_BLUETOOTH` | Large glowing circular Bluetooth ring with pulse waves, `● Connected`, `OnePlus 12`, transport buttons (`|<`, Play, `>|`) | **Turn:** Volume<br>**Click:** Play / Pause |
+| **6. Web FM** | `UI_SCREEN_WEB_FM` | Station cards: `BBC Radio 1` (Active glowing capsule), `Chillout Lounge`, `Trance FM` with station logos | **Turn:** Scroll stations<br>**Click:** Tune station |
+| **7. SoundCloud** | `UI_SCREEN_SOUNDCLOUD` | Orange cloud badge, 4 menu items: `🔥 Trending`, `♥ Your Likes`, `≡ Playlists`, `👥 Following` | **Turn:** Select category<br>**Click:** Open stream |
+| **8. Equalizer** | `UI_SCREEN_EQUALIZER` | `Equalizer` ON switch, 5-band vertical sliders (`60`, `250`, `1k`, `4k`, `16k`) with white slider beads, presets (`Flat`, `Rock`, `Pop`, `Jazz`) | **Turn:** Cycle Presets<br>**Click:** Apply Preset |
+| **9. USB Drive** | `UI_SCREEN_USB` | 3D USB drive vector graphic, "USB Drive", "128 GB \| 412 Songs", bottom neon wave | **Turn:** Volume<br>**Hold:** Back to Home |
+| **10. AUX In** | `UI_SCREEN_AUX` | 3.5mm stereo jack graphic, "AUX IN", "External Audio", live audio spectrum waveform | **Turn:** Volume<br>**Hold:** Back to Home |
+| **11. Settings** | `UI_SCREEN_SETTINGS` | 4 settings categories: `Audio`, `Display`, `Network`, `System` with navigation chevrons | **Turn:** Browse<br>**Click:** Select |
+| **12. About** | `UI_SCREEN_ABOUT` | ESP32 chip graphic, "Croenix Audio v3.0.0 Hi-Fi", supported codecs (`FLAC/WAV/MP3/AAC`), neon wave footer | **Click / Hold:** Back to Home |
+| **13. Song Info** | `UI_SCREEN_SONG_INFO` | Detailed ID3 view: Album Art, Title, Artist, Album, Year, `FLAC 44.1k / 16-bit` format capsule | **Click / Hold:** Back to Home |
+| **14. Volume HUD** | `UI_SCREEN_VOLUME` | Large readout (`68%`), `[-]` and `[+]`, glowing horizontal pink slider with round white thumb, speaker icon with 10-segment rising LED meter | **Turn:** Adjust Volume (0-100%) |
+| **15. Diagnostics** | `UI_SCREEN_HARDWARE_DIAGNOSTICS`| Diagnostic telemetry: DAC (I2S DMA), FM Radio (Si4703), SD Card (FAT32), ESP32 (Heap/Cores) | **Hold 8s:** Toggle Diag Screen |
+
+--- | :## 3. Physical TFT Display Architecture (Cyber Neon UI/UX)
+
+The 1.8" ST7735 color display (160x128 landscape) features a custom **Cyberpunk Glassmorphism** design engine matching the reference layout specifications across all 16 operating modes:
+
+### Visual Palette & Graphic Elements
+* **Background:** Obsidian Black/Navy (`0x0821` / `#0A0A14`)
+* **Card Containers:** Glass Dark Slate (`0x10A2`) with subtle borders (`0x3166`)
+* **Neon Accents:** Electric Magenta (`0xFAAA` / `#FF2E93`), Deep Violet (`0x8A1F`), Electric Cyan (`0x06BF`), Connected Green (`0x07E0`), Warm Amber (`0xFDA0`), SoundCloud Orange (`0xFD20`)
+* **Unified Status Bar:** `< Mode Name`, Real-Time Digital Clock (`10:24`), Bluetooth Icon, Wi-Fi Arc Icon, Battery Level Gauge
+
+### Complete 16-Screen Display Matrix
+
+| Screen Mode | Screen View | Primary Visual Elements | Encoder Controls |
+| :--- | :--- | :--- | :--- |
+| **0. Boot Splash** | `UI_SCREEN_BOOT_SPLASH` | Glowing circular musical emblem, "Croenix Audio", "Lossless Music Player", animated bottom neon waves | Automatic boot transition |
+| **1. Home Grid** | `UI_SCREEN_HOME` | 2x4 Glowing Mode Cards: `SD Card`, `USB`, `Bluetooth`, `FM Radio`, `Web FM`, `SoundCloud`, `AUX`, `More` + 3 carousel dots | **Turn:** Move pink highlight cursor<br>**Click:** Enter selected mode |
+| **2. SD Now Playing** | `UI_SCREEN_NOW_PLAYING` | Vinyl album art box, Track Title, Artist, `FLAC 44.1k/16b` badge, progress bar (0:51 / -1:42), real-time neon waveform, controls (`|<`, Play, `>|`) | **Turn:** Next / Prev track<br>**Click:** Play / Pause<br>**Hold (750ms):** Back to Home |
+| **3. SD Music List** | `UI_SCREEN_PLAYLIST` | 3-track playlist cards with artwork thumbnails, title, artist, duration (`3:21`, `5:14`, `4:37`), active track glowing border | **Turn:** Scroll tracks<br>**Click:** Play track |
+| **4. FM Radio** | `UI_SCREEN_FM_RADIO` | Large digital frequency (`98.30 MHz`), tuning arrows (`< >`), real-time broadcast spectrum visualizer, 4 preset capsules (`P1 91.1`, `P2 98.3`, `P3 100.8`, `P4 104.8`) | **Turn:** Tune ±0.1 MHz<br>**Click:** Cycle Presets P1-P4 |
+| **5. Bluetooth** | `UI_SCREEN_BLUETOOTH` | Large glowing circular Bluetooth ring with pulse waves, `● Connected`, `OnePlus 12`, transport buttons (`|<`, Play, `>|`) | **Turn:** Volume<br>**Click:** Play / Pause |
+| **6. Web FM** | `UI_SCREEN_WEB_FM` | Station cards: `BBC Radio 1` (Active glowing capsule), `Chillout Lounge`, `Trance FM` with station logos | **Turn:** Scroll stations<br>**Click:** Tune station |
+| **7. SoundCloud** | `UI_SCREEN_SOUNDCLOUD` | Orange cloud badge, 4 menu items: `🔥 Trending`, `♥ Your Likes`, `≡ Playlists`, `👥 Following` | **Turn:** Select category<br>**Click:** Open stream |
+| **8. Equalizer** | `UI_SCREEN_EQUALIZER` | `Equalizer` ON switch, 5-band vertical sliders (`60`, `250`, `1k`, `4k`, `16k`) with white slider beads, presets (`Flat`, `Rock`, `Pop`, `Jazz`) | **Turn:** Cycle Presets<br>**Click:** Apply Preset |
+| **9. USB Drive** | `UI_SCREEN_USB` | 3D USB drive vector graphic, "USB Drive", "128 GB \| 412 Songs", bottom neon wave | **Turn:** Volume<br>**Hold:** Back to Home |
+| **10. AUX In** | `UI_SCREEN_AUX` | 3.5mm stereo jack graphic, "AUX IN", "External Audio", live audio spectrum waveform | **Turn:** Volume<br>**Hold:** Back to Home |
+| **11. Settings** | `UI_SCREEN_SETTINGS` | 4 settings categories: `Audio`, `Display`, `Network`, `System` with navigation chevrons | **Turn:** Browse<br>**Click:** Select |
+| **12. About** | `UI_SCREEN_ABOUT` | ESP32 chip graphic, "Croenix Audio v3.0.0 Hi-Fi", supported codecs (`FLAC/WAV/MP3/AAC`), neon wave footer | **Click / Hold:** Back to Home |
+| **13. Song Info** | `UI_SCREEN_SONG_INFO` | Detailed ID3 view: Album Art, Title, Artist, Album, Year, `FLAC 44.1k / 16-bit` format capsule | **Click / Hold:** Back to Home |
+| **14. Volume HUD** | `UI_SCREEN_VOLUME` | Large readout (`68%`), `[-]` and `[+]`, glowing horizontal pink slider with round white thumb, speaker icon with 10-segment rising LED meter | **Turn:** Adjust Volume (0-100%) |
+| **15. Diagnostics** | `UI_SCREEN_HARDWARE_DIAGNOSTICS`| Diagnostic telemetry: DAC (I2S DMA), FM Radio (Si4703), SD Card (FAT32), ESP32 (Heap/Cores) | **Hold 8s:** Toggle Diag Screen |
+
+--- |
 | **VCC** | **5V** or **3.3V** | Power (Check module regulator: 5V for buffered boards) |
 | **GND** | **GND** | Common ground |
 | **CS** | **GPIO 15** | Dedicated SD Card Chip Select |
@@ -65,7 +533,100 @@ High-Performance, Low-Memory Embedded Architecture for ESP32-WROOM-32 & Flutter 
 ### D. HW-322 FM Radio (Si4703 - I²C)
 
 | Si4703 Pin | ESP32 Pin | Function / Description |
-| :--- | :--- | :--- |
+| :## 3. Physical TFT Display Architecture (Cyber Neon UI/UX)
+
+The 1.8" ST7735 color display (160x128 landscape) features a custom **Cyberpunk Glassmorphism** design engine matching the reference layout specifications across all 16 operating modes:
+
+### Visual Palette & Graphic Elements
+* **Background:** Obsidian Black/Navy (`0x0821` / `#0A0A14`)
+* **Card Containers:** Glass Dark Slate (`0x10A2`) with subtle borders (`0x3166`)
+* **Neon Accents:** Electric Magenta (`0xFAAA` / `#FF2E93`), Deep Violet (`0x8A1F`), Electric Cyan (`0x06BF`), Connected Green (`0x07E0`), Warm Amber (`0xFDA0`), SoundCloud Orange (`0xFD20`)
+* **Unified Status Bar:** `< Mode Name`, Real-Time Digital Clock (`10:24`), Bluetooth Icon, Wi-Fi Arc Icon, Battery Level Gauge
+
+### Complete 16-Screen Display Matrix
+
+| Screen Mode | Screen View | Primary Visual Elements | Encoder Controls |
+| :--- | :--- | :--- | :--- |
+| **0. Boot Splash** | `UI_SCREEN_BOOT_SPLASH` | Glowing circular musical emblem, "Croenix Audio", "Lossless Music Player", animated bottom neon waves | Automatic boot transition |
+| **1. Home Grid** | `UI_SCREEN_HOME` | 2x4 Glowing Mode Cards: `SD Card`, `USB`, `Bluetooth`, `FM Radio`, `Web FM`, `SoundCloud`, `AUX`, `More` + 3 carousel dots | **Turn:** Move pink highlight cursor<br>**Click:** Enter selected mode |
+| **2. SD Now Playing** | `UI_SCREEN_NOW_PLAYING` | Vinyl album art box, Track Title, Artist, `FLAC 44.1k/16b` badge, progress bar (0:51 / -1:42), real-time neon waveform, controls (`|<`, Play, `>|`) | **Turn:** Next / Prev track<br>**Click:** Play / Pause<br>**Hold (750ms):** Back to Home |
+| **3. SD Music List** | `UI_SCREEN_PLAYLIST` | 3-track playlist cards with artwork thumbnails, title, artist, duration (`3:21`, `5:14`, `4:37`), active track glowing border | **Turn:** Scroll tracks<br>**Click:** Play track |
+| **4. FM Radio** | `UI_SCREEN_FM_RADIO` | Large digital frequency (`98.30 MHz`), tuning arrows (`< >`), real-time broadcast spectrum visualizer, 4 preset capsules (`P1 91.1`, `P2 98.3`, `P3 100.8`, `P4 104.8`) | **Turn:** Tune ±0.1 MHz<br>**Click:** Cycle Presets P1-P4 |
+| **5. Bluetooth** | `UI_SCREEN_BLUETOOTH` | Large glowing circular Bluetooth ring with pulse waves, `● Connected`, `OnePlus 12`, transport buttons (`|<`, Play, `>|`) | **Turn:** Volume<br>**Click:** Play / Pause |
+| **6. Web FM** | `UI_SCREEN_WEB_FM` | Station cards: `BBC Radio 1` (Active glowing capsule), `Chillout Lounge`, `Trance FM` with station logos | **Turn:** Scroll stations<br>**Click:** Tune station |
+| **7. SoundCloud** | `UI_SCREEN_SOUNDCLOUD` | Orange cloud badge, 4 menu items: `🔥 Trending`, `♥ Your Likes`, `≡ Playlists`, `👥 Following` | **Turn:** Select category<br>**Click:** Open stream |
+| **8. Equalizer** | `UI_SCREEN_EQUALIZER` | `Equalizer` ON switch, 5-band vertical sliders (`60`, `250`, `1k`, `4k`, `16k`) with white slider beads, presets (`Flat`, `Rock`, `Pop`, `Jazz`) | **Turn:** Cycle Presets<br>**Click:** Apply Preset |
+| **9. USB Drive** | `UI_SCREEN_USB` | 3D USB drive vector graphic, "USB Drive", "128 GB \| 412 Songs", bottom neon wave | **Turn:** Volume<br>**Hold:** Back to Home |
+| **10. AUX In** | `UI_SCREEN_AUX` | 3.5mm stereo jack graphic, "AUX IN", "External Audio", live audio spectrum waveform | **Turn:** Volume<br>**Hold:** Back to Home |
+| **11. Settings** | `UI_SCREEN_SETTINGS` | 4 settings categories: `Audio`, `Display`, `Network`, `System` with navigation chevrons | **Turn:** Browse<br>**Click:** Select |
+| **12. About** | `UI_SCREEN_ABOUT` | ESP32 chip graphic, "Croenix Audio v3.0.0 Hi-Fi", supported codecs (`FLAC/WAV/MP3/AAC`), neon wave footer | **Click / Hold:** Back to Home |
+| **13. Song Info** | `UI_SCREEN_SONG_INFO` | Detailed ID3 view: Album Art, Title, Artist, Album, Year, `FLAC 44.1k / 16-bit` format capsule | **Click / Hold:** Back to Home |
+| **14. Volume HUD** | `UI_SCREEN_VOLUME` | Large readout (`68%`), `[-]` and `[+]`, glowing horizontal pink slider with round white thumb, speaker icon with 10-segment rising LED meter | **Turn:** Adjust Volume (0-100%) |
+| **15. Diagnostics** | `UI_SCREEN_HARDWARE_DIAGNOSTICS`| Diagnostic telemetry: DAC (I2S DMA), FM Radio (Si4703), SD Card (FAT32), ESP32 (Heap/Cores) | **Hold 8s:** Toggle Diag Screen |
+
+--- | :## 3. Physical TFT Display Architecture (Cyber Neon UI/UX)
+
+The 1.8" ST7735 color display (160x128 landscape) features a custom **Cyberpunk Glassmorphism** design engine matching the reference layout specifications across all 16 operating modes:
+
+### Visual Palette & Graphic Elements
+* **Background:** Obsidian Black/Navy (`0x0821` / `#0A0A14`)
+* **Card Containers:** Glass Dark Slate (`0x10A2`) with subtle borders (`0x3166`)
+* **Neon Accents:** Electric Magenta (`0xFAAA` / `#FF2E93`), Deep Violet (`0x8A1F`), Electric Cyan (`0x06BF`), Connected Green (`0x07E0`), Warm Amber (`0xFDA0`), SoundCloud Orange (`0xFD20`)
+* **Unified Status Bar:** `< Mode Name`, Real-Time Digital Clock (`10:24`), Bluetooth Icon, Wi-Fi Arc Icon, Battery Level Gauge
+
+### Complete 16-Screen Display Matrix
+
+| Screen Mode | Screen View | Primary Visual Elements | Encoder Controls |
+| :--- | :--- | :--- | :--- |
+| **0. Boot Splash** | `UI_SCREEN_BOOT_SPLASH` | Glowing circular musical emblem, "Croenix Audio", "Lossless Music Player", animated bottom neon waves | Automatic boot transition |
+| **1. Home Grid** | `UI_SCREEN_HOME` | 2x4 Glowing Mode Cards: `SD Card`, `USB`, `Bluetooth`, `FM Radio`, `Web FM`, `SoundCloud`, `AUX`, `More` + 3 carousel dots | **Turn:** Move pink highlight cursor<br>**Click:** Enter selected mode |
+| **2. SD Now Playing** | `UI_SCREEN_NOW_PLAYING` | Vinyl album art box, Track Title, Artist, `FLAC 44.1k/16b` badge, progress bar (0:51 / -1:42), real-time neon waveform, controls (`|<`, Play, `>|`) | **Turn:** Next / Prev track<br>**Click:** Play / Pause<br>**Hold (750ms):** Back to Home |
+| **3. SD Music List** | `UI_SCREEN_PLAYLIST` | 3-track playlist cards with artwork thumbnails, title, artist, duration (`3:21`, `5:14`, `4:37`), active track glowing border | **Turn:** Scroll tracks<br>**Click:** Play track |
+| **4. FM Radio** | `UI_SCREEN_FM_RADIO` | Large digital frequency (`98.30 MHz`), tuning arrows (`< >`), real-time broadcast spectrum visualizer, 4 preset capsules (`P1 91.1`, `P2 98.3`, `P3 100.8`, `P4 104.8`) | **Turn:** Tune ±0.1 MHz<br>**Click:** Cycle Presets P1-P4 |
+| **5. Bluetooth** | `UI_SCREEN_BLUETOOTH` | Large glowing circular Bluetooth ring with pulse waves, `● Connected`, `OnePlus 12`, transport buttons (`|<`, Play, `>|`) | **Turn:** Volume<br>**Click:** Play / Pause |
+| **6. Web FM** | `UI_SCREEN_WEB_FM` | Station cards: `BBC Radio 1` (Active glowing capsule), `Chillout Lounge`, `Trance FM` with station logos | **Turn:** Scroll stations<br>**Click:** Tune station |
+| **7. SoundCloud** | `UI_SCREEN_SOUNDCLOUD` | Orange cloud badge, 4 menu items: `🔥 Trending`, `♥ Your Likes`, `≡ Playlists`, `👥 Following` | **Turn:** Select category<br>**Click:** Open stream |
+| **8. Equalizer** | `UI_SCREEN_EQUALIZER` | `Equalizer` ON switch, 5-band vertical sliders (`60`, `250`, `1k`, `4k`, `16k`) with white slider beads, presets (`Flat`, `Rock`, `Pop`, `Jazz`) | **Turn:** Cycle Presets<br>**Click:** Apply Preset |
+| **9. USB Drive** | `UI_SCREEN_USB` | 3D USB drive vector graphic, "USB Drive", "128 GB \| 412 Songs", bottom neon wave | **Turn:** Volume<br>**Hold:** Back to Home |
+| **10. AUX In** | `UI_SCREEN_AUX` | 3.5mm stereo jack graphic, "AUX IN", "External Audio", live audio spectrum waveform | **Turn:** Volume<br>**Hold:** Back to Home |
+| **11. Settings** | `UI_SCREEN_SETTINGS` | 4 settings categories: `Audio`, `Display`, `Network`, `System` with navigation chevrons | **Turn:** Browse<br>**Click:** Select |
+| **12. About** | `UI_SCREEN_ABOUT` | ESP32 chip graphic, "Croenix Audio v3.0.0 Hi-Fi", supported codecs (`FLAC/WAV/MP3/AAC`), neon wave footer | **Click / Hold:** Back to Home |
+| **13. Song Info** | `UI_SCREEN_SONG_INFO` | Detailed ID3 view: Album Art, Title, Artist, Album, Year, `FLAC 44.1k / 16-bit` format capsule | **Click / Hold:** Back to Home |
+| **14. Volume HUD** | `UI_SCREEN_VOLUME` | Large readout (`68%`), `[-]` and `[+]`, glowing horizontal pink slider with round white thumb, speaker icon with 10-segment rising LED meter | **Turn:** Adjust Volume (0-100%) |
+| **15. Diagnostics** | `UI_SCREEN_HARDWARE_DIAGNOSTICS`| Diagnostic telemetry: DAC (I2S DMA), FM Radio (Si4703), SD Card (FAT32), ESP32 (Heap/Cores) | **Hold 8s:** Toggle Diag Screen |
+
+--- | :## 3. Physical TFT Display Architecture (Cyber Neon UI/UX)
+
+The 1.8" ST7735 color display (160x128 landscape) features a custom **Cyberpunk Glassmorphism** design engine matching the reference layout specifications across all 16 operating modes:
+
+### Visual Palette & Graphic Elements
+* **Background:** Obsidian Black/Navy (`0x0821` / `#0A0A14`)
+* **Card Containers:** Glass Dark Slate (`0x10A2`) with subtle borders (`0x3166`)
+* **Neon Accents:** Electric Magenta (`0xFAAA` / `#FF2E93`), Deep Violet (`0x8A1F`), Electric Cyan (`0x06BF`), Connected Green (`0x07E0`), Warm Amber (`0xFDA0`), SoundCloud Orange (`0xFD20`)
+* **Unified Status Bar:** `< Mode Name`, Real-Time Digital Clock (`10:24`), Bluetooth Icon, Wi-Fi Arc Icon, Battery Level Gauge
+
+### Complete 16-Screen Display Matrix
+
+| Screen Mode | Screen View | Primary Visual Elements | Encoder Controls |
+| :--- | :--- | :--- | :--- |
+| **0. Boot Splash** | `UI_SCREEN_BOOT_SPLASH` | Glowing circular musical emblem, "Croenix Audio", "Lossless Music Player", animated bottom neon waves | Automatic boot transition |
+| **1. Home Grid** | `UI_SCREEN_HOME` | 2x4 Glowing Mode Cards: `SD Card`, `USB`, `Bluetooth`, `FM Radio`, `Web FM`, `SoundCloud`, `AUX`, `More` + 3 carousel dots | **Turn:** Move pink highlight cursor<br>**Click:** Enter selected mode |
+| **2. SD Now Playing** | `UI_SCREEN_NOW_PLAYING` | Vinyl album art box, Track Title, Artist, `FLAC 44.1k/16b` badge, progress bar (0:51 / -1:42), real-time neon waveform, controls (`|<`, Play, `>|`) | **Turn:** Next / Prev track<br>**Click:** Play / Pause<br>**Hold (750ms):** Back to Home |
+| **3. SD Music List** | `UI_SCREEN_PLAYLIST` | 3-track playlist cards with artwork thumbnails, title, artist, duration (`3:21`, `5:14`, `4:37`), active track glowing border | **Turn:** Scroll tracks<br>**Click:** Play track |
+| **4. FM Radio** | `UI_SCREEN_FM_RADIO` | Large digital frequency (`98.30 MHz`), tuning arrows (`< >`), real-time broadcast spectrum visualizer, 4 preset capsules (`P1 91.1`, `P2 98.3`, `P3 100.8`, `P4 104.8`) | **Turn:** Tune ±0.1 MHz<br>**Click:** Cycle Presets P1-P4 |
+| **5. Bluetooth** | `UI_SCREEN_BLUETOOTH` | Large glowing circular Bluetooth ring with pulse waves, `● Connected`, `OnePlus 12`, transport buttons (`|<`, Play, `>|`) | **Turn:** Volume<br>**Click:** Play / Pause |
+| **6. Web FM** | `UI_SCREEN_WEB_FM` | Station cards: `BBC Radio 1` (Active glowing capsule), `Chillout Lounge`, `Trance FM` with station logos | **Turn:** Scroll stations<br>**Click:** Tune station |
+| **7. SoundCloud** | `UI_SCREEN_SOUNDCLOUD` | Orange cloud badge, 4 menu items: `🔥 Trending`, `♥ Your Likes`, `≡ Playlists`, `👥 Following` | **Turn:** Select category<br>**Click:** Open stream |
+| **8. Equalizer** | `UI_SCREEN_EQUALIZER` | `Equalizer` ON switch, 5-band vertical sliders (`60`, `250`, `1k`, `4k`, `16k`) with white slider beads, presets (`Flat`, `Rock`, `Pop`, `Jazz`) | **Turn:** Cycle Presets<br>**Click:** Apply Preset |
+| **9. USB Drive** | `UI_SCREEN_USB` | 3D USB drive vector graphic, "USB Drive", "128 GB \| 412 Songs", bottom neon wave | **Turn:** Volume<br>**Hold:** Back to Home |
+| **10. AUX In** | `UI_SCREEN_AUX` | 3.5mm stereo jack graphic, "AUX IN", "External Audio", live audio spectrum waveform | **Turn:** Volume<br>**Hold:** Back to Home |
+| **11. Settings** | `UI_SCREEN_SETTINGS` | 4 settings categories: `Audio`, `Display`, `Network`, `System` with navigation chevrons | **Turn:** Browse<br>**Click:** Select |
+| **12. About** | `UI_SCREEN_ABOUT` | ESP32 chip graphic, "Croenix Audio v3.0.0 Hi-Fi", supported codecs (`FLAC/WAV/MP3/AAC`), neon wave footer | **Click / Hold:** Back to Home |
+| **13. Song Info** | `UI_SCREEN_SONG_INFO` | Detailed ID3 view: Album Art, Title, Artist, Album, Year, `FLAC 44.1k / 16-bit` format capsule | **Click / Hold:** Back to Home |
+| **14. Volume HUD** | `UI_SCREEN_VOLUME` | Large readout (`68%`), `[-]` and `[+]`, glowing horizontal pink slider with round white thumb, speaker icon with 10-segment rising LED meter | **Turn:** Adjust Volume (0-100%) |
+| **15. Diagnostics** | `UI_SCREEN_HARDWARE_DIAGNOSTICS`| Diagnostic telemetry: DAC (I2S DMA), FM Radio (Si4703), SD Card (FAT32), ESP32 (Heap/Cores) | **Hold 8s:** Toggle Diag Screen |
+
+--- |
 | **VCC** | **3.3V** | Module logic power |
 | **GND** | **GND** | Common ground |
 | **SDIO / SDA** | **GPIO 21** | I²C Data line |
@@ -76,12 +637,136 @@ High-Performance, Low-Memory Embedded Architecture for ESP32-WROOM-32 & Flutter 
 ### E. KY-040 Rotary Encoder
 
 | KY-040 Pin | ESP32 Pin | Function / Description |
-| :--- | :--- | :--- |
+| :## 3. Physical TFT Display Architecture (Cyber Neon UI/UX)
+
+The 1.8" ST7735 color display (160x128 landscape) features a custom **Cyberpunk Glassmorphism** design engine matching the reference layout specifications across all 16 operating modes:
+
+### Visual Palette & Graphic Elements
+* **Background:** Obsidian Black/Navy (`0x0821` / `#0A0A14`)
+* **Card Containers:** Glass Dark Slate (`0x10A2`) with subtle borders (`0x3166`)
+* **Neon Accents:** Electric Magenta (`0xFAAA` / `#FF2E93`), Deep Violet (`0x8A1F`), Electric Cyan (`0x06BF`), Connected Green (`0x07E0`), Warm Amber (`0xFDA0`), SoundCloud Orange (`0xFD20`)
+* **Unified Status Bar:** `< Mode Name`, Real-Time Digital Clock (`10:24`), Bluetooth Icon, Wi-Fi Arc Icon, Battery Level Gauge
+
+### Complete 16-Screen Display Matrix
+
+| Screen Mode | Screen View | Primary Visual Elements | Encoder Controls |
+| :--- | :--- | :--- | :--- |
+| **0. Boot Splash** | `UI_SCREEN_BOOT_SPLASH` | Glowing circular musical emblem, "Croenix Audio", "Lossless Music Player", animated bottom neon waves | Automatic boot transition |
+| **1. Home Grid** | `UI_SCREEN_HOME` | 2x4 Glowing Mode Cards: `SD Card`, `USB`, `Bluetooth`, `FM Radio`, `Web FM`, `SoundCloud`, `AUX`, `More` + 3 carousel dots | **Turn:** Move pink highlight cursor<br>**Click:** Enter selected mode |
+| **2. SD Now Playing** | `UI_SCREEN_NOW_PLAYING` | Vinyl album art box, Track Title, Artist, `FLAC 44.1k/16b` badge, progress bar (0:51 / -1:42), real-time neon waveform, controls (`|<`, Play, `>|`) | **Turn:** Next / Prev track<br>**Click:** Play / Pause<br>**Hold (750ms):** Back to Home |
+| **3. SD Music List** | `UI_SCREEN_PLAYLIST` | 3-track playlist cards with artwork thumbnails, title, artist, duration (`3:21`, `5:14`, `4:37`), active track glowing border | **Turn:** Scroll tracks<br>**Click:** Play track |
+| **4. FM Radio** | `UI_SCREEN_FM_RADIO` | Large digital frequency (`98.30 MHz`), tuning arrows (`< >`), real-time broadcast spectrum visualizer, 4 preset capsules (`P1 91.1`, `P2 98.3`, `P3 100.8`, `P4 104.8`) | **Turn:** Tune ±0.1 MHz<br>**Click:** Cycle Presets P1-P4 |
+| **5. Bluetooth** | `UI_SCREEN_BLUETOOTH` | Large glowing circular Bluetooth ring with pulse waves, `● Connected`, `OnePlus 12`, transport buttons (`|<`, Play, `>|`) | **Turn:** Volume<br>**Click:** Play / Pause |
+| **6. Web FM** | `UI_SCREEN_WEB_FM` | Station cards: `BBC Radio 1` (Active glowing capsule), `Chillout Lounge`, `Trance FM` with station logos | **Turn:** Scroll stations<br>**Click:** Tune station |
+| **7. SoundCloud** | `UI_SCREEN_SOUNDCLOUD` | Orange cloud badge, 4 menu items: `🔥 Trending`, `♥ Your Likes`, `≡ Playlists`, `👥 Following` | **Turn:** Select category<br>**Click:** Open stream |
+| **8. Equalizer** | `UI_SCREEN_EQUALIZER` | `Equalizer` ON switch, 5-band vertical sliders (`60`, `250`, `1k`, `4k`, `16k`) with white slider beads, presets (`Flat`, `Rock`, `Pop`, `Jazz`) | **Turn:** Cycle Presets<br>**Click:** Apply Preset |
+| **9. USB Drive** | `UI_SCREEN_USB` | 3D USB drive vector graphic, "USB Drive", "128 GB \| 412 Songs", bottom neon wave | **Turn:** Volume<br>**Hold:** Back to Home |
+| **10. AUX In** | `UI_SCREEN_AUX` | 3.5mm stereo jack graphic, "AUX IN", "External Audio", live audio spectrum waveform | **Turn:** Volume<br>**Hold:** Back to Home |
+| **11. Settings** | `UI_SCREEN_SETTINGS` | 4 settings categories: `Audio`, `Display`, `Network`, `System` with navigation chevrons | **Turn:** Browse<br>**Click:** Select |
+| **12. About** | `UI_SCREEN_ABOUT` | ESP32 chip graphic, "Croenix Audio v3.0.0 Hi-Fi", supported codecs (`FLAC/WAV/MP3/AAC`), neon wave footer | **Click / Hold:** Back to Home |
+| **13. Song Info** | `UI_SCREEN_SONG_INFO` | Detailed ID3 view: Album Art, Title, Artist, Album, Year, `FLAC 44.1k / 16-bit` format capsule | **Click / Hold:** Back to Home |
+| **14. Volume HUD** | `UI_SCREEN_VOLUME` | Large readout (`68%`), `[-]` and `[+]`, glowing horizontal pink slider with round white thumb, speaker icon with 10-segment rising LED meter | **Turn:** Adjust Volume (0-100%) |
+| **15. Diagnostics** | `UI_SCREEN_HARDWARE_DIAGNOSTICS`| Diagnostic telemetry: DAC (I2S DMA), FM Radio (Si4703), SD Card (FAT32), ESP32 (Heap/Cores) | **Hold 8s:** Toggle Diag Screen |
+
+--- | :## 3. Physical TFT Display Architecture (Cyber Neon UI/UX)
+
+The 1.8" ST7735 color display (160x128 landscape) features a custom **Cyberpunk Glassmorphism** design engine matching the reference layout specifications across all 16 operating modes:
+
+### Visual Palette & Graphic Elements
+* **Background:** Obsidian Black/Navy (`0x0821` / `#0A0A14`)
+* **Card Containers:** Glass Dark Slate (`0x10A2`) with subtle borders (`0x3166`)
+* **Neon Accents:** Electric Magenta (`0xFAAA` / `#FF2E93`), Deep Violet (`0x8A1F`), Electric Cyan (`0x06BF`), Connected Green (`0x07E0`), Warm Amber (`0xFDA0`), SoundCloud Orange (`0xFD20`)
+* **Unified Status Bar:** `< Mode Name`, Real-Time Digital Clock (`10:24`), Bluetooth Icon, Wi-Fi Arc Icon, Battery Level Gauge
+
+### Complete 16-Screen Display Matrix
+
+| Screen Mode | Screen View | Primary Visual Elements | Encoder Controls |
+| :--- | :--- | :--- | :--- |
+| **0. Boot Splash** | `UI_SCREEN_BOOT_SPLASH` | Glowing circular musical emblem, "Croenix Audio", "Lossless Music Player", animated bottom neon waves | Automatic boot transition |
+| **1. Home Grid** | `UI_SCREEN_HOME` | 2x4 Glowing Mode Cards: `SD Card`, `USB`, `Bluetooth`, `FM Radio`, `Web FM`, `SoundCloud`, `AUX`, `More` + 3 carousel dots | **Turn:** Move pink highlight cursor<br>**Click:** Enter selected mode |
+| **2. SD Now Playing** | `UI_SCREEN_NOW_PLAYING` | Vinyl album art box, Track Title, Artist, `FLAC 44.1k/16b` badge, progress bar (0:51 / -1:42), real-time neon waveform, controls (`|<`, Play, `>|`) | **Turn:** Next / Prev track<br>**Click:** Play / Pause<br>**Hold (750ms):** Back to Home |
+| **3. SD Music List** | `UI_SCREEN_PLAYLIST` | 3-track playlist cards with artwork thumbnails, title, artist, duration (`3:21`, `5:14`, `4:37`), active track glowing border | **Turn:** Scroll tracks<br>**Click:** Play track |
+| **4. FM Radio** | `UI_SCREEN_FM_RADIO` | Large digital frequency (`98.30 MHz`), tuning arrows (`< >`), real-time broadcast spectrum visualizer, 4 preset capsules (`P1 91.1`, `P2 98.3`, `P3 100.8`, `P4 104.8`) | **Turn:** Tune ±0.1 MHz<br>**Click:** Cycle Presets P1-P4 |
+| **5. Bluetooth** | `UI_SCREEN_BLUETOOTH` | Large glowing circular Bluetooth ring with pulse waves, `● Connected`, `OnePlus 12`, transport buttons (`|<`, Play, `>|`) | **Turn:** Volume<br>**Click:** Play / Pause |
+| **6. Web FM** | `UI_SCREEN_WEB_FM` | Station cards: `BBC Radio 1` (Active glowing capsule), `Chillout Lounge`, `Trance FM` with station logos | **Turn:** Scroll stations<br>**Click:** Tune station |
+| **7. SoundCloud** | `UI_SCREEN_SOUNDCLOUD` | Orange cloud badge, 4 menu items: `🔥 Trending`, `♥ Your Likes`, `≡ Playlists`, `👥 Following` | **Turn:** Select category<br>**Click:** Open stream |
+| **8. Equalizer** | `UI_SCREEN_EQUALIZER` | `Equalizer` ON switch, 5-band vertical sliders (`60`, `250`, `1k`, `4k`, `16k`) with white slider beads, presets (`Flat`, `Rock`, `Pop`, `Jazz`) | **Turn:** Cycle Presets<br>**Click:** Apply Preset |
+| **9. USB Drive** | `UI_SCREEN_USB` | 3D USB drive vector graphic, "USB Drive", "128 GB \| 412 Songs", bottom neon wave | **Turn:** Volume<br>**Hold:** Back to Home |
+| **10. AUX In** | `UI_SCREEN_AUX` | 3.5mm stereo jack graphic, "AUX IN", "External Audio", live audio spectrum waveform | **Turn:** Volume<br>**Hold:** Back to Home |
+| **11. Settings** | `UI_SCREEN_SETTINGS` | 4 settings categories: `Audio`, `Display`, `Network`, `System` with navigation chevrons | **Turn:** Browse<br>**Click:** Select |
+| **12. About** | `UI_SCREEN_ABOUT` | ESP32 chip graphic, "Croenix Audio v3.0.0 Hi-Fi", supported codecs (`FLAC/WAV/MP3/AAC`), neon wave footer | **Click / Hold:** Back to Home |
+| **13. Song Info** | `UI_SCREEN_SONG_INFO` | Detailed ID3 view: Album Art, Title, Artist, Album, Year, `FLAC 44.1k / 16-bit` format capsule | **Click / Hold:** Back to Home |
+| **14. Volume HUD** | `UI_SCREEN_VOLUME` | Large readout (`68%`), `[-]` and `[+]`, glowing horizontal pink slider with round white thumb, speaker icon with 10-segment rising LED meter | **Turn:** Adjust Volume (0-100%) |
+| **15. Diagnostics** | `UI_SCREEN_HARDWARE_DIAGNOSTICS`| Diagnostic telemetry: DAC (I2S DMA), FM Radio (Si4703), SD Card (FAT32), ESP32 (Heap/Cores) | **Hold 8s:** Toggle Diag Screen |
+
+--- | :## 3. Physical TFT Display Architecture (Cyber Neon UI/UX)
+
+The 1.8" ST7735 color display (160x128 landscape) features a custom **Cyberpunk Glassmorphism** design engine matching the reference layout specifications across all 16 operating modes:
+
+### Visual Palette & Graphic Elements
+* **Background:** Obsidian Black/Navy (`0x0821` / `#0A0A14`)
+* **Card Containers:** Glass Dark Slate (`0x10A2`) with subtle borders (`0x3166`)
+* **Neon Accents:** Electric Magenta (`0xFAAA` / `#FF2E93`), Deep Violet (`0x8A1F`), Electric Cyan (`0x06BF`), Connected Green (`0x07E0`), Warm Amber (`0xFDA0`), SoundCloud Orange (`0xFD20`)
+* **Unified Status Bar:** `< Mode Name`, Real-Time Digital Clock (`10:24`), Bluetooth Icon, Wi-Fi Arc Icon, Battery Level Gauge
+
+### Complete 16-Screen Display Matrix
+
+| Screen Mode | Screen View | Primary Visual Elements | Encoder Controls |
+| :--- | :--- | :--- | :--- |
+| **0. Boot Splash** | `UI_SCREEN_BOOT_SPLASH` | Glowing circular musical emblem, "Croenix Audio", "Lossless Music Player", animated bottom neon waves | Automatic boot transition |
+| **1. Home Grid** | `UI_SCREEN_HOME` | 2x4 Glowing Mode Cards: `SD Card`, `USB`, `Bluetooth`, `FM Radio`, `Web FM`, `SoundCloud`, `AUX`, `More` + 3 carousel dots | **Turn:** Move pink highlight cursor<br>**Click:** Enter selected mode |
+| **2. SD Now Playing** | `UI_SCREEN_NOW_PLAYING` | Vinyl album art box, Track Title, Artist, `FLAC 44.1k/16b` badge, progress bar (0:51 / -1:42), real-time neon waveform, controls (`|<`, Play, `>|`) | **Turn:** Next / Prev track<br>**Click:** Play / Pause<br>**Hold (750ms):** Back to Home |
+| **3. SD Music List** | `UI_SCREEN_PLAYLIST` | 3-track playlist cards with artwork thumbnails, title, artist, duration (`3:21`, `5:14`, `4:37`), active track glowing border | **Turn:** Scroll tracks<br>**Click:** Play track |
+| **4. FM Radio** | `UI_SCREEN_FM_RADIO` | Large digital frequency (`98.30 MHz`), tuning arrows (`< >`), real-time broadcast spectrum visualizer, 4 preset capsules (`P1 91.1`, `P2 98.3`, `P3 100.8`, `P4 104.8`) | **Turn:** Tune ±0.1 MHz<br>**Click:** Cycle Presets P1-P4 |
+| **5. Bluetooth** | `UI_SCREEN_BLUETOOTH` | Large glowing circular Bluetooth ring with pulse waves, `● Connected`, `OnePlus 12`, transport buttons (`|<`, Play, `>|`) | **Turn:** Volume<br>**Click:** Play / Pause |
+| **6. Web FM** | `UI_SCREEN_WEB_FM` | Station cards: `BBC Radio 1` (Active glowing capsule), `Chillout Lounge`, `Trance FM` with station logos | **Turn:** Scroll stations<br>**Click:** Tune station |
+| **7. SoundCloud** | `UI_SCREEN_SOUNDCLOUD` | Orange cloud badge, 4 menu items: `🔥 Trending`, `♥ Your Likes`, `≡ Playlists`, `👥 Following` | **Turn:** Select category<br>**Click:** Open stream |
+| **8. Equalizer** | `UI_SCREEN_EQUALIZER` | `Equalizer` ON switch, 5-band vertical sliders (`60`, `250`, `1k`, `4k`, `16k`) with white slider beads, presets (`Flat`, `Rock`, `Pop`, `Jazz`) | **Turn:** Cycle Presets<br>**Click:** Apply Preset |
+| **9. USB Drive** | `UI_SCREEN_USB` | 3D USB drive vector graphic, "USB Drive", "128 GB \| 412 Songs", bottom neon wave | **Turn:** Volume<br>**Hold:** Back to Home |
+| **10. AUX In** | `UI_SCREEN_AUX` | 3.5mm stereo jack graphic, "AUX IN", "External Audio", live audio spectrum waveform | **Turn:** Volume<br>**Hold:** Back to Home |
+| **11. Settings** | `UI_SCREEN_SETTINGS` | 4 settings categories: `Audio`, `Display`, `Network`, `System` with navigation chevrons | **Turn:** Browse<br>**Click:** Select |
+| **12. About** | `UI_SCREEN_ABOUT` | ESP32 chip graphic, "Croenix Audio v3.0.0 Hi-Fi", supported codecs (`FLAC/WAV/MP3/AAC`), neon wave footer | **Click / Hold:** Back to Home |
+| **13. Song Info** | `UI_SCREEN_SONG_INFO` | Detailed ID3 view: Album Art, Title, Artist, Album, Year, `FLAC 44.1k / 16-bit` format capsule | **Click / Hold:** Back to Home |
+| **14. Volume HUD** | `UI_SCREEN_VOLUME` | Large readout (`68%`), `[-]` and `[+]`, glowing horizontal pink slider with round white thumb, speaker icon with 10-segment rising LED meter | **Turn:** Adjust Volume (0-100%) |
+| **15. Diagnostics** | `UI_SCREEN_HARDWARE_DIAGNOSTICS`| Diagnostic telemetry: DAC (I2S DMA), FM Radio (Si4703), SD Card (FAT32), ESP32 (Heap/Cores) | **Hold 8s:** Toggle Diag Screen |
+
+--- |
 | **CLK (A)** | **GPIO 32** | Quadrature interrupt channel A |
 | **DT (B)** | **GPIO 33** | Quadrature interrupt channel B |
 | **SW (Key)** | **GPIO 17** | Push-button state switch interrupt |
 | **+ / VCC** | **3.3V** | Pull-up supply |
 | **GND** | **GND** | Common ground |
+
+## 3. Physical TFT Display Architecture (Cyber Neon UI/UX)
+
+The 1.8" ST7735 color display (160x128 landscape) features a custom **Cyberpunk Glassmorphism** design engine matching the reference layout specifications across all 16 operating modes:
+
+### Visual Palette & Graphic Elements
+* **Background:** Obsidian Black/Navy (`0x0821` / `#0A0A14`)
+* **Card Containers:** Glass Dark Slate (`0x10A2`) with subtle borders (`0x3166`)
+* **Neon Accents:** Electric Magenta (`0xFAAA` / `#FF2E93`), Deep Violet (`0x8A1F`), Electric Cyan (`0x06BF`), Connected Green (`0x07E0`), Warm Amber (`0xFDA0`), SoundCloud Orange (`0xFD20`)
+* **Unified Status Bar:** `< Mode Name`, Real-Time Digital Clock (`10:24`), Bluetooth Icon, Wi-Fi Arc Icon, Battery Level Gauge
+
+### Complete 16-Screen Display Matrix
+
+| Screen Mode | Screen View | Primary Visual Elements | Encoder Controls |
+| :--- | :--- | :--- | :--- |
+| **0. Boot Splash** | `UI_SCREEN_BOOT_SPLASH` | Glowing circular musical emblem, "Croenix Audio", "Lossless Music Player", animated bottom neon waves | Automatic boot transition |
+| **1. Home Grid** | `UI_SCREEN_HOME` | 2x4 Glowing Mode Cards: `SD Card`, `USB`, `Bluetooth`, `FM Radio`, `Web FM`, `SoundCloud`, `AUX`, `More` + 3 carousel dots | **Turn:** Move pink highlight cursor<br>**Click:** Enter selected mode |
+| **2. SD Now Playing** | `UI_SCREEN_NOW_PLAYING` | Vinyl album art box, Track Title, Artist, `FLAC 44.1k/16b` badge, progress bar (0:51 / -1:42), real-time neon waveform, controls (`|<`, Play, `>|`) | **Turn:** Next / Prev track<br>**Click:** Play / Pause<br>**Hold (750ms):** Back to Home |
+| **3. SD Music List** | `UI_SCREEN_PLAYLIST` | 3-track playlist cards with artwork thumbnails, title, artist, duration (`3:21`, `5:14`, `4:37`), active track glowing border | **Turn:** Scroll tracks<br>**Click:** Play track |
+| **4. FM Radio** | `UI_SCREEN_FM_RADIO` | Large digital frequency (`98.30 MHz`), tuning arrows (`< >`), real-time broadcast spectrum visualizer, 4 preset capsules (`P1 91.1`, `P2 98.3`, `P3 100.8`, `P4 104.8`) | **Turn:** Tune ±0.1 MHz<br>**Click:** Cycle Presets P1-P4 |
+| **5. Bluetooth** | `UI_SCREEN_BLUETOOTH` | Large glowing circular Bluetooth ring with pulse waves, `● Connected`, `OnePlus 12`, transport buttons (`|<`, Play, `>|`) | **Turn:** Volume<br>**Click:** Play / Pause |
+| **6. Web FM** | `UI_SCREEN_WEB_FM` | Station cards: `BBC Radio 1` (Active glowing capsule), `Chillout Lounge`, `Trance FM` with station logos | **Turn:** Scroll stations<br>**Click:** Tune station |
+| **7. SoundCloud** | `UI_SCREEN_SOUNDCLOUD` | Orange cloud badge, 4 menu items: `🔥 Trending`, `♥ Your Likes`, `≡ Playlists`, `👥 Following` | **Turn:** Select category<br>**Click:** Open stream |
+| **8. Equalizer** | `UI_SCREEN_EQUALIZER` | `Equalizer` ON switch, 5-band vertical sliders (`60`, `250`, `1k`, `4k`, `16k`) with white slider beads, presets (`Flat`, `Rock`, `Pop`, `Jazz`) | **Turn:** Cycle Presets<br>**Click:** Apply Preset |
+| **9. USB Drive** | `UI_SCREEN_USB` | 3D USB drive vector graphic, "USB Drive", "128 GB \| 412 Songs", bottom neon wave | **Turn:** Volume<br>**Hold:** Back to Home |
+| **10. AUX In** | `UI_SCREEN_AUX` | 3.5mm stereo jack graphic, "AUX IN", "External Audio", live audio spectrum waveform | **Turn:** Volume<br>**Hold:** Back to Home |
+| **11. Settings** | `UI_SCREEN_SETTINGS` | 4 settings categories: `Audio`, `Display`, `Network`, `System` with navigation chevrons | **Turn:** Browse<br>**Click:** Select |
+| **12. About** | `UI_SCREEN_ABOUT` | ESP32 chip graphic, "Croenix Audio v3.0.0 Hi-Fi", supported codecs (`FLAC/WAV/MP3/AAC`), neon wave footer | **Click / Hold:** Back to Home |
+| **13. Song Info** | `UI_SCREEN_SONG_INFO` | Detailed ID3 view: Album Art, Title, Artist, Album, Year, `FLAC 44.1k / 16-bit` format capsule | **Click / Hold:** Back to Home |
+| **14. Volume HUD** | `UI_SCREEN_VOLUME` | Large readout (`68%`), `[-]` and `[+]`, glowing horizontal pink slider with round white thumb, speaker icon with 10-segment rising LED meter | **Turn:** Adjust Volume (0-100%) |
+| **15. Diagnostics** | `UI_SCREEN_HARDWARE_DIAGNOSTICS`| Diagnostic telemetry: DAC (I2S DMA), FM Radio (Si4703), SD Card (FAT32), ESP32 (Heap/Cores) | **Hold 8s:** Toggle Diag Screen |
 
 ---
 
@@ -106,6 +791,37 @@ The firmware uses interrupt-driven quadrature decoding with a hardware debounce 
      2. **HW-322 FM Radio** (Si4703 I²C bus probe, frequency, RSSI)
      3. **SD Card Reader** (Filesystem mount, card capacity, track count, FAT32 validation)
      4. **System & Display** (Core 0/1 CPU load, FreeRTOS heap memory, WiFi telemetry)
+
+## 3. Physical TFT Display Architecture (Cyber Neon UI/UX)
+
+The 1.8" ST7735 color display (160x128 landscape) features a custom **Cyberpunk Glassmorphism** design engine matching the reference layout specifications across all 16 operating modes:
+
+### Visual Palette & Graphic Elements
+* **Background:** Obsidian Black/Navy (`0x0821` / `#0A0A14`)
+* **Card Containers:** Glass Dark Slate (`0x10A2`) with subtle borders (`0x3166`)
+* **Neon Accents:** Electric Magenta (`0xFAAA` / `#FF2E93`), Deep Violet (`0x8A1F`), Electric Cyan (`0x06BF`), Connected Green (`0x07E0`), Warm Amber (`0xFDA0`), SoundCloud Orange (`0xFD20`)
+* **Unified Status Bar:** `< Mode Name`, Real-Time Digital Clock (`10:24`), Bluetooth Icon, Wi-Fi Arc Icon, Battery Level Gauge
+
+### Complete 16-Screen Display Matrix
+
+| Screen Mode | Screen View | Primary Visual Elements | Encoder Controls |
+| :--- | :--- | :--- | :--- |
+| **0. Boot Splash** | `UI_SCREEN_BOOT_SPLASH` | Glowing circular musical emblem, "Croenix Audio", "Lossless Music Player", animated bottom neon waves | Automatic boot transition |
+| **1. Home Grid** | `UI_SCREEN_HOME` | 2x4 Glowing Mode Cards: `SD Card`, `USB`, `Bluetooth`, `FM Radio`, `Web FM`, `SoundCloud`, `AUX`, `More` + 3 carousel dots | **Turn:** Move pink highlight cursor<br>**Click:** Enter selected mode |
+| **2. SD Now Playing** | `UI_SCREEN_NOW_PLAYING` | Vinyl album art box, Track Title, Artist, `FLAC 44.1k/16b` badge, progress bar (0:51 / -1:42), real-time neon waveform, controls (`|<`, Play, `>|`) | **Turn:** Next / Prev track<br>**Click:** Play / Pause<br>**Hold (750ms):** Back to Home |
+| **3. SD Music List** | `UI_SCREEN_PLAYLIST` | 3-track playlist cards with artwork thumbnails, title, artist, duration (`3:21`, `5:14`, `4:37`), active track glowing border | **Turn:** Scroll tracks<br>**Click:** Play track |
+| **4. FM Radio** | `UI_SCREEN_FM_RADIO` | Large digital frequency (`98.30 MHz`), tuning arrows (`< >`), real-time broadcast spectrum visualizer, 4 preset capsules (`P1 91.1`, `P2 98.3`, `P3 100.8`, `P4 104.8`) | **Turn:** Tune ±0.1 MHz<br>**Click:** Cycle Presets P1-P4 |
+| **5. Bluetooth** | `UI_SCREEN_BLUETOOTH` | Large glowing circular Bluetooth ring with pulse waves, `● Connected`, `OnePlus 12`, transport buttons (`|<`, Play, `>|`) | **Turn:** Volume<br>**Click:** Play / Pause |
+| **6. Web FM** | `UI_SCREEN_WEB_FM` | Station cards: `BBC Radio 1` (Active glowing capsule), `Chillout Lounge`, `Trance FM` with station logos | **Turn:** Scroll stations<br>**Click:** Tune station |
+| **7. SoundCloud** | `UI_SCREEN_SOUNDCLOUD` | Orange cloud badge, 4 menu items: `🔥 Trending`, `♥ Your Likes`, `≡ Playlists`, `👥 Following` | **Turn:** Select category<br>**Click:** Open stream |
+| **8. Equalizer** | `UI_SCREEN_EQUALIZER` | `Equalizer` ON switch, 5-band vertical sliders (`60`, `250`, `1k`, `4k`, `16k`) with white slider beads, presets (`Flat`, `Rock`, `Pop`, `Jazz`) | **Turn:** Cycle Presets<br>**Click:** Apply Preset |
+| **9. USB Drive** | `UI_SCREEN_USB` | 3D USB drive vector graphic, "USB Drive", "128 GB \| 412 Songs", bottom neon wave | **Turn:** Volume<br>**Hold:** Back to Home |
+| **10. AUX In** | `UI_SCREEN_AUX` | 3.5mm stereo jack graphic, "AUX IN", "External Audio", live audio spectrum waveform | **Turn:** Volume<br>**Hold:** Back to Home |
+| **11. Settings** | `UI_SCREEN_SETTINGS` | 4 settings categories: `Audio`, `Display`, `Network`, `System` with navigation chevrons | **Turn:** Browse<br>**Click:** Select |
+| **12. About** | `UI_SCREEN_ABOUT` | ESP32 chip graphic, "Croenix Audio v3.0.0 Hi-Fi", supported codecs (`FLAC/WAV/MP3/AAC`), neon wave footer | **Click / Hold:** Back to Home |
+| **13. Song Info** | `UI_SCREEN_SONG_INFO` | Detailed ID3 view: Album Art, Title, Artist, Album, Year, `FLAC 44.1k / 16-bit` format capsule | **Click / Hold:** Back to Home |
+| **14. Volume HUD** | `UI_SCREEN_VOLUME` | Large readout (`68%`), `[-]` and `[+]`, glowing horizontal pink slider with round white thumb, speaker icon with 10-segment rising LED meter | **Turn:** Adjust Volume (0-100%) |
+| **15. Diagnostics** | `UI_SCREEN_HARDWARE_DIAGNOSTICS`| Diagnostic telemetry: DAC (I2S DMA), FM Radio (Si4703), SD Card (FAT32), ESP32 (Heap/Cores) | **Hold 8s:** Toggle Diag Screen |
 
 ---
 
@@ -146,6 +862,37 @@ Edit `Arduino/libraries/TFT_eSPI/User_Setup.h`:
    *(Selecting the default partition will cause a flash overflow error because the firmware with FreeRTOS, I²S audio streaming, Wi-Fi, and WebSockets requires ~2.06 MB).*
 4. Select your COM Port and click **Upload**.
 
+## 3. Physical TFT Display Architecture (Cyber Neon UI/UX)
+
+The 1.8" ST7735 color display (160x128 landscape) features a custom **Cyberpunk Glassmorphism** design engine matching the reference layout specifications across all 16 operating modes:
+
+### Visual Palette & Graphic Elements
+* **Background:** Obsidian Black/Navy (`0x0821` / `#0A0A14`)
+* **Card Containers:** Glass Dark Slate (`0x10A2`) with subtle borders (`0x3166`)
+* **Neon Accents:** Electric Magenta (`0xFAAA` / `#FF2E93`), Deep Violet (`0x8A1F`), Electric Cyan (`0x06BF`), Connected Green (`0x07E0`), Warm Amber (`0xFDA0`), SoundCloud Orange (`0xFD20`)
+* **Unified Status Bar:** `< Mode Name`, Real-Time Digital Clock (`10:24`), Bluetooth Icon, Wi-Fi Arc Icon, Battery Level Gauge
+
+### Complete 16-Screen Display Matrix
+
+| Screen Mode | Screen View | Primary Visual Elements | Encoder Controls |
+| :--- | :--- | :--- | :--- |
+| **0. Boot Splash** | `UI_SCREEN_BOOT_SPLASH` | Glowing circular musical emblem, "Croenix Audio", "Lossless Music Player", animated bottom neon waves | Automatic boot transition |
+| **1. Home Grid** | `UI_SCREEN_HOME` | 2x4 Glowing Mode Cards: `SD Card`, `USB`, `Bluetooth`, `FM Radio`, `Web FM`, `SoundCloud`, `AUX`, `More` + 3 carousel dots | **Turn:** Move pink highlight cursor<br>**Click:** Enter selected mode |
+| **2. SD Now Playing** | `UI_SCREEN_NOW_PLAYING` | Vinyl album art box, Track Title, Artist, `FLAC 44.1k/16b` badge, progress bar (0:51 / -1:42), real-time neon waveform, controls (`|<`, Play, `>|`) | **Turn:** Next / Prev track<br>**Click:** Play / Pause<br>**Hold (750ms):** Back to Home |
+| **3. SD Music List** | `UI_SCREEN_PLAYLIST` | 3-track playlist cards with artwork thumbnails, title, artist, duration (`3:21`, `5:14`, `4:37`), active track glowing border | **Turn:** Scroll tracks<br>**Click:** Play track |
+| **4. FM Radio** | `UI_SCREEN_FM_RADIO` | Large digital frequency (`98.30 MHz`), tuning arrows (`< >`), real-time broadcast spectrum visualizer, 4 preset capsules (`P1 91.1`, `P2 98.3`, `P3 100.8`, `P4 104.8`) | **Turn:** Tune ±0.1 MHz<br>**Click:** Cycle Presets P1-P4 |
+| **5. Bluetooth** | `UI_SCREEN_BLUETOOTH` | Large glowing circular Bluetooth ring with pulse waves, `● Connected`, `OnePlus 12`, transport buttons (`|<`, Play, `>|`) | **Turn:** Volume<br>**Click:** Play / Pause |
+| **6. Web FM** | `UI_SCREEN_WEB_FM` | Station cards: `BBC Radio 1` (Active glowing capsule), `Chillout Lounge`, `Trance FM` with station logos | **Turn:** Scroll stations<br>**Click:** Tune station |
+| **7. SoundCloud** | `UI_SCREEN_SOUNDCLOUD` | Orange cloud badge, 4 menu items: `🔥 Trending`, `♥ Your Likes`, `≡ Playlists`, `👥 Following` | **Turn:** Select category<br>**Click:** Open stream |
+| **8. Equalizer** | `UI_SCREEN_EQUALIZER` | `Equalizer` ON switch, 5-band vertical sliders (`60`, `250`, `1k`, `4k`, `16k`) with white slider beads, presets (`Flat`, `Rock`, `Pop`, `Jazz`) | **Turn:** Cycle Presets<br>**Click:** Apply Preset |
+| **9. USB Drive** | `UI_SCREEN_USB` | 3D USB drive vector graphic, "USB Drive", "128 GB \| 412 Songs", bottom neon wave | **Turn:** Volume<br>**Hold:** Back to Home |
+| **10. AUX In** | `UI_SCREEN_AUX` | 3.5mm stereo jack graphic, "AUX IN", "External Audio", live audio spectrum waveform | **Turn:** Volume<br>**Hold:** Back to Home |
+| **11. Settings** | `UI_SCREEN_SETTINGS` | 4 settings categories: `Audio`, `Display`, `Network`, `System` with navigation chevrons | **Turn:** Browse<br>**Click:** Select |
+| **12. About** | `UI_SCREEN_ABOUT` | ESP32 chip graphic, "Croenix Audio v3.0.0 Hi-Fi", supported codecs (`FLAC/WAV/MP3/AAC`), neon wave footer | **Click / Hold:** Back to Home |
+| **13. Song Info** | `UI_SCREEN_SONG_INFO` | Detailed ID3 view: Album Art, Title, Artist, Album, Year, `FLAC 44.1k / 16-bit` format capsule | **Click / Hold:** Back to Home |
+| **14. Volume HUD** | `UI_SCREEN_VOLUME` | Large readout (`68%`), `[-]` and `[+]`, glowing horizontal pink slider with round white thumb, speaker icon with 10-segment rising LED meter | **Turn:** Adjust Volume (0-100%) |
+| **15. Diagnostics** | `UI_SCREEN_HARDWARE_DIAGNOSTICS`| Diagnostic telemetry: DAC (I2S DMA), FM Radio (Si4703), SD Card (FAT32), ESP32 (Heap/Cores) | **Hold 8s:** Toggle Diag Screen |
+
 ---
 
 ## 5. Flutter Companion Application Setup
@@ -173,6 +920,37 @@ The Flutter application provides a cyber glassmorphism interface with zero-laten
    ```
    *Output binary location: `croenix_app/build/app/outputs/flutter-apk/app-release.apk`*
 
+## 3. Physical TFT Display Architecture (Cyber Neon UI/UX)
+
+The 1.8" ST7735 color display (160x128 landscape) features a custom **Cyberpunk Glassmorphism** design engine matching the reference layout specifications across all 16 operating modes:
+
+### Visual Palette & Graphic Elements
+* **Background:** Obsidian Black/Navy (`0x0821` / `#0A0A14`)
+* **Card Containers:** Glass Dark Slate (`0x10A2`) with subtle borders (`0x3166`)
+* **Neon Accents:** Electric Magenta (`0xFAAA` / `#FF2E93`), Deep Violet (`0x8A1F`), Electric Cyan (`0x06BF`), Connected Green (`0x07E0`), Warm Amber (`0xFDA0`), SoundCloud Orange (`0xFD20`)
+* **Unified Status Bar:** `< Mode Name`, Real-Time Digital Clock (`10:24`), Bluetooth Icon, Wi-Fi Arc Icon, Battery Level Gauge
+
+### Complete 16-Screen Display Matrix
+
+| Screen Mode | Screen View | Primary Visual Elements | Encoder Controls |
+| :--- | :--- | :--- | :--- |
+| **0. Boot Splash** | `UI_SCREEN_BOOT_SPLASH` | Glowing circular musical emblem, "Croenix Audio", "Lossless Music Player", animated bottom neon waves | Automatic boot transition |
+| **1. Home Grid** | `UI_SCREEN_HOME` | 2x4 Glowing Mode Cards: `SD Card`, `USB`, `Bluetooth`, `FM Radio`, `Web FM`, `SoundCloud`, `AUX`, `More` + 3 carousel dots | **Turn:** Move pink highlight cursor<br>**Click:** Enter selected mode |
+| **2. SD Now Playing** | `UI_SCREEN_NOW_PLAYING` | Vinyl album art box, Track Title, Artist, `FLAC 44.1k/16b` badge, progress bar (0:51 / -1:42), real-time neon waveform, controls (`|<`, Play, `>|`) | **Turn:** Next / Prev track<br>**Click:** Play / Pause<br>**Hold (750ms):** Back to Home |
+| **3. SD Music List** | `UI_SCREEN_PLAYLIST` | 3-track playlist cards with artwork thumbnails, title, artist, duration (`3:21`, `5:14`, `4:37`), active track glowing border | **Turn:** Scroll tracks<br>**Click:** Play track |
+| **4. FM Radio** | `UI_SCREEN_FM_RADIO` | Large digital frequency (`98.30 MHz`), tuning arrows (`< >`), real-time broadcast spectrum visualizer, 4 preset capsules (`P1 91.1`, `P2 98.3`, `P3 100.8`, `P4 104.8`) | **Turn:** Tune ±0.1 MHz<br>**Click:** Cycle Presets P1-P4 |
+| **5. Bluetooth** | `UI_SCREEN_BLUETOOTH` | Large glowing circular Bluetooth ring with pulse waves, `● Connected`, `OnePlus 12`, transport buttons (`|<`, Play, `>|`) | **Turn:** Volume<br>**Click:** Play / Pause |
+| **6. Web FM** | `UI_SCREEN_WEB_FM` | Station cards: `BBC Radio 1` (Active glowing capsule), `Chillout Lounge`, `Trance FM` with station logos | **Turn:** Scroll stations<br>**Click:** Tune station |
+| **7. SoundCloud** | `UI_SCREEN_SOUNDCLOUD` | Orange cloud badge, 4 menu items: `🔥 Trending`, `♥ Your Likes`, `≡ Playlists`, `👥 Following` | **Turn:** Select category<br>**Click:** Open stream |
+| **8. Equalizer** | `UI_SCREEN_EQUALIZER` | `Equalizer` ON switch, 5-band vertical sliders (`60`, `250`, `1k`, `4k`, `16k`) with white slider beads, presets (`Flat`, `Rock`, `Pop`, `Jazz`) | **Turn:** Cycle Presets<br>**Click:** Apply Preset |
+| **9. USB Drive** | `UI_SCREEN_USB` | 3D USB drive vector graphic, "USB Drive", "128 GB \| 412 Songs", bottom neon wave | **Turn:** Volume<br>**Hold:** Back to Home |
+| **10. AUX In** | `UI_SCREEN_AUX` | 3.5mm stereo jack graphic, "AUX IN", "External Audio", live audio spectrum waveform | **Turn:** Volume<br>**Hold:** Back to Home |
+| **11. Settings** | `UI_SCREEN_SETTINGS` | 4 settings categories: `Audio`, `Display`, `Network`, `System` with navigation chevrons | **Turn:** Browse<br>**Click:** Select |
+| **12. About** | `UI_SCREEN_ABOUT` | ESP32 chip graphic, "Croenix Audio v3.0.0 Hi-Fi", supported codecs (`FLAC/WAV/MP3/AAC`), neon wave footer | **Click / Hold:** Back to Home |
+| **13. Song Info** | `UI_SCREEN_SONG_INFO` | Detailed ID3 view: Album Art, Title, Artist, Album, Year, `FLAC 44.1k / 16-bit` format capsule | **Click / Hold:** Back to Home |
+| **14. Volume HUD** | `UI_SCREEN_VOLUME` | Large readout (`68%`), `[-]` and `[+]`, glowing horizontal pink slider with round white thumb, speaker icon with 10-segment rising LED meter | **Turn:** Adjust Volume (0-100%) |
+| **15. Diagnostics** | `UI_SCREEN_HARDWARE_DIAGNOSTICS`| Diagnostic telemetry: DAC (I2S DMA), FM Radio (Si4703), SD Card (FAT32), ESP32 (Heap/Cores) | **Hold 8s:** Toggle Diag Screen |
+
 ---
 
 ## 6. Zero-Handoff QR Provisioning Protocol
@@ -188,6 +966,37 @@ The Flutter application provides a cyber glassmorphism interface with zero-laten
 3. **mDNS & WebSocket Reconnect:**
    - Once connected to your router, the ESP32 broadcasts via mDNS at `croenix-audio.local`.
    - The mobile app establishes a bidirectional WebSocket connection on port `8080` (`ws://croenix-audio.local:8080`).
+
+## 3. Physical TFT Display Architecture (Cyber Neon UI/UX)
+
+The 1.8" ST7735 color display (160x128 landscape) features a custom **Cyberpunk Glassmorphism** design engine matching the reference layout specifications across all 16 operating modes:
+
+### Visual Palette & Graphic Elements
+* **Background:** Obsidian Black/Navy (`0x0821` / `#0A0A14`)
+* **Card Containers:** Glass Dark Slate (`0x10A2`) with subtle borders (`0x3166`)
+* **Neon Accents:** Electric Magenta (`0xFAAA` / `#FF2E93`), Deep Violet (`0x8A1F`), Electric Cyan (`0x06BF`), Connected Green (`0x07E0`), Warm Amber (`0xFDA0`), SoundCloud Orange (`0xFD20`)
+* **Unified Status Bar:** `< Mode Name`, Real-Time Digital Clock (`10:24`), Bluetooth Icon, Wi-Fi Arc Icon, Battery Level Gauge
+
+### Complete 16-Screen Display Matrix
+
+| Screen Mode | Screen View | Primary Visual Elements | Encoder Controls |
+| :--- | :--- | :--- | :--- |
+| **0. Boot Splash** | `UI_SCREEN_BOOT_SPLASH` | Glowing circular musical emblem, "Croenix Audio", "Lossless Music Player", animated bottom neon waves | Automatic boot transition |
+| **1. Home Grid** | `UI_SCREEN_HOME` | 2x4 Glowing Mode Cards: `SD Card`, `USB`, `Bluetooth`, `FM Radio`, `Web FM`, `SoundCloud`, `AUX`, `More` + 3 carousel dots | **Turn:** Move pink highlight cursor<br>**Click:** Enter selected mode |
+| **2. SD Now Playing** | `UI_SCREEN_NOW_PLAYING` | Vinyl album art box, Track Title, Artist, `FLAC 44.1k/16b` badge, progress bar (0:51 / -1:42), real-time neon waveform, controls (`|<`, Play, `>|`) | **Turn:** Next / Prev track<br>**Click:** Play / Pause<br>**Hold (750ms):** Back to Home |
+| **3. SD Music List** | `UI_SCREEN_PLAYLIST` | 3-track playlist cards with artwork thumbnails, title, artist, duration (`3:21`, `5:14`, `4:37`), active track glowing border | **Turn:** Scroll tracks<br>**Click:** Play track |
+| **4. FM Radio** | `UI_SCREEN_FM_RADIO` | Large digital frequency (`98.30 MHz`), tuning arrows (`< >`), real-time broadcast spectrum visualizer, 4 preset capsules (`P1 91.1`, `P2 98.3`, `P3 100.8`, `P4 104.8`) | **Turn:** Tune ±0.1 MHz<br>**Click:** Cycle Presets P1-P4 |
+| **5. Bluetooth** | `UI_SCREEN_BLUETOOTH` | Large glowing circular Bluetooth ring with pulse waves, `● Connected`, `OnePlus 12`, transport buttons (`|<`, Play, `>|`) | **Turn:** Volume<br>**Click:** Play / Pause |
+| **6. Web FM** | `UI_SCREEN_WEB_FM` | Station cards: `BBC Radio 1` (Active glowing capsule), `Chillout Lounge`, `Trance FM` with station logos | **Turn:** Scroll stations<br>**Click:** Tune station |
+| **7. SoundCloud** | `UI_SCREEN_SOUNDCLOUD` | Orange cloud badge, 4 menu items: `🔥 Trending`, `♥ Your Likes`, `≡ Playlists`, `👥 Following` | **Turn:** Select category<br>**Click:** Open stream |
+| **8. Equalizer** | `UI_SCREEN_EQUALIZER` | `Equalizer` ON switch, 5-band vertical sliders (`60`, `250`, `1k`, `4k`, `16k`) with white slider beads, presets (`Flat`, `Rock`, `Pop`, `Jazz`) | **Turn:** Cycle Presets<br>**Click:** Apply Preset |
+| **9. USB Drive** | `UI_SCREEN_USB` | 3D USB drive vector graphic, "USB Drive", "128 GB \| 412 Songs", bottom neon wave | **Turn:** Volume<br>**Hold:** Back to Home |
+| **10. AUX In** | `UI_SCREEN_AUX` | 3.5mm stereo jack graphic, "AUX IN", "External Audio", live audio spectrum waveform | **Turn:** Volume<br>**Hold:** Back to Home |
+| **11. Settings** | `UI_SCREEN_SETTINGS` | 4 settings categories: `Audio`, `Display`, `Network`, `System` with navigation chevrons | **Turn:** Browse<br>**Click:** Select |
+| **12. About** | `UI_SCREEN_ABOUT` | ESP32 chip graphic, "Croenix Audio v3.0.0 Hi-Fi", supported codecs (`FLAC/WAV/MP3/AAC`), neon wave footer | **Click / Hold:** Back to Home |
+| **13. Song Info** | `UI_SCREEN_SONG_INFO` | Detailed ID3 view: Album Art, Title, Artist, Album, Year, `FLAC 44.1k / 16-bit` format capsule | **Click / Hold:** Back to Home |
+| **14. Volume HUD** | `UI_SCREEN_VOLUME` | Large readout (`68%`), `[-]` and `[+]`, glowing horizontal pink slider with round white thumb, speaker icon with 10-segment rising LED meter | **Turn:** Adjust Volume (0-100%) |
+| **15. Diagnostics** | `UI_SCREEN_HARDWARE_DIAGNOSTICS`| Diagnostic telemetry: DAC (I2S DMA), FM Radio (Si4703), SD Card (FAT32), ESP32 (Heap/Cores) | **Hold 8s:** Toggle Diag Screen |
 
 ---
 
@@ -206,6 +1015,37 @@ The application features a dedicated SoundCloud streaming suite:
   - The firmware automatically requests the next track upon completion, broadcasting real-time ID3 tags (Track Title, Artist, Duration, Bitrate) to both the TFT display and mobile app.
 * **Custom Stream Input:**
   - Enter any direct audio stream or SoundCloud feed URL in the app to route playback through the PCM5102A I²S DAC.
+
+## 3. Physical TFT Display Architecture (Cyber Neon UI/UX)
+
+The 1.8" ST7735 color display (160x128 landscape) features a custom **Cyberpunk Glassmorphism** design engine matching the reference layout specifications across all 16 operating modes:
+
+### Visual Palette & Graphic Elements
+* **Background:** Obsidian Black/Navy (`0x0821` / `#0A0A14`)
+* **Card Containers:** Glass Dark Slate (`0x10A2`) with subtle borders (`0x3166`)
+* **Neon Accents:** Electric Magenta (`0xFAAA` / `#FF2E93`), Deep Violet (`0x8A1F`), Electric Cyan (`0x06BF`), Connected Green (`0x07E0`), Warm Amber (`0xFDA0`), SoundCloud Orange (`0xFD20`)
+* **Unified Status Bar:** `< Mode Name`, Real-Time Digital Clock (`10:24`), Bluetooth Icon, Wi-Fi Arc Icon, Battery Level Gauge
+
+### Complete 16-Screen Display Matrix
+
+| Screen Mode | Screen View | Primary Visual Elements | Encoder Controls |
+| :--- | :--- | :--- | :--- |
+| **0. Boot Splash** | `UI_SCREEN_BOOT_SPLASH` | Glowing circular musical emblem, "Croenix Audio", "Lossless Music Player", animated bottom neon waves | Automatic boot transition |
+| **1. Home Grid** | `UI_SCREEN_HOME` | 2x4 Glowing Mode Cards: `SD Card`, `USB`, `Bluetooth`, `FM Radio`, `Web FM`, `SoundCloud`, `AUX`, `More` + 3 carousel dots | **Turn:** Move pink highlight cursor<br>**Click:** Enter selected mode |
+| **2. SD Now Playing** | `UI_SCREEN_NOW_PLAYING` | Vinyl album art box, Track Title, Artist, `FLAC 44.1k/16b` badge, progress bar (0:51 / -1:42), real-time neon waveform, controls (`|<`, Play, `>|`) | **Turn:** Next / Prev track<br>**Click:** Play / Pause<br>**Hold (750ms):** Back to Home |
+| **3. SD Music List** | `UI_SCREEN_PLAYLIST` | 3-track playlist cards with artwork thumbnails, title, artist, duration (`3:21`, `5:14`, `4:37`), active track glowing border | **Turn:** Scroll tracks<br>**Click:** Play track |
+| **4. FM Radio** | `UI_SCREEN_FM_RADIO` | Large digital frequency (`98.30 MHz`), tuning arrows (`< >`), real-time broadcast spectrum visualizer, 4 preset capsules (`P1 91.1`, `P2 98.3`, `P3 100.8`, `P4 104.8`) | **Turn:** Tune ±0.1 MHz<br>**Click:** Cycle Presets P1-P4 |
+| **5. Bluetooth** | `UI_SCREEN_BLUETOOTH` | Large glowing circular Bluetooth ring with pulse waves, `● Connected`, `OnePlus 12`, transport buttons (`|<`, Play, `>|`) | **Turn:** Volume<br>**Click:** Play / Pause |
+| **6. Web FM** | `UI_SCREEN_WEB_FM` | Station cards: `BBC Radio 1` (Active glowing capsule), `Chillout Lounge`, `Trance FM` with station logos | **Turn:** Scroll stations<br>**Click:** Tune station |
+| **7. SoundCloud** | `UI_SCREEN_SOUNDCLOUD` | Orange cloud badge, 4 menu items: `🔥 Trending`, `♥ Your Likes`, `≡ Playlists`, `👥 Following` | **Turn:** Select category<br>**Click:** Open stream |
+| **8. Equalizer** | `UI_SCREEN_EQUALIZER` | `Equalizer` ON switch, 5-band vertical sliders (`60`, `250`, `1k`, `4k`, `16k`) with white slider beads, presets (`Flat`, `Rock`, `Pop`, `Jazz`) | **Turn:** Cycle Presets<br>**Click:** Apply Preset |
+| **9. USB Drive** | `UI_SCREEN_USB` | 3D USB drive vector graphic, "USB Drive", "128 GB \| 412 Songs", bottom neon wave | **Turn:** Volume<br>**Hold:** Back to Home |
+| **10. AUX In** | `UI_SCREEN_AUX` | 3.5mm stereo jack graphic, "AUX IN", "External Audio", live audio spectrum waveform | **Turn:** Volume<br>**Hold:** Back to Home |
+| **11. Settings** | `UI_SCREEN_SETTINGS` | 4 settings categories: `Audio`, `Display`, `Network`, `System` with navigation chevrons | **Turn:** Browse<br>**Click:** Select |
+| **12. About** | `UI_SCREEN_ABOUT` | ESP32 chip graphic, "Croenix Audio v3.0.0 Hi-Fi", supported codecs (`FLAC/WAV/MP3/AAC`), neon wave footer | **Click / Hold:** Back to Home |
+| **13. Song Info** | `UI_SCREEN_SONG_INFO` | Detailed ID3 view: Album Art, Title, Artist, Album, Year, `FLAC 44.1k / 16-bit` format capsule | **Click / Hold:** Back to Home |
+| **14. Volume HUD** | `UI_SCREEN_VOLUME` | Large readout (`68%`), `[-]` and `[+]`, glowing horizontal pink slider with round white thumb, speaker icon with 10-segment rising LED meter | **Turn:** Adjust Volume (0-100%) |
+| **15. Diagnostics** | `UI_SCREEN_HARDWARE_DIAGNOSTICS`| Diagnostic telemetry: DAC (I2S DMA), FM Radio (Si4703), SD Card (FAT32), ESP32 (Heap/Cores) | **Hold 8s:** Toggle Diag Screen |
 
 ---
 
@@ -233,6 +1073,37 @@ ESP32 GPIO 26 $\rightarrow$ DAC BCKESP32 GPIO 25 $\rightarrow$ DAC DINESP32 GPIO
 
 ### Compilation Fails ("Text Section Exceeds Space")
 * In Arduino IDE, change **Tools → Partition Scheme** to **Huge APP (3MB No OTA/1MB SPIFFS)**.
+
+## 3. Physical TFT Display Architecture (Cyber Neon UI/UX)
+
+The 1.8" ST7735 color display (160x128 landscape) features a custom **Cyberpunk Glassmorphism** design engine matching the reference layout specifications across all 16 operating modes:
+
+### Visual Palette & Graphic Elements
+* **Background:** Obsidian Black/Navy (`0x0821` / `#0A0A14`)
+* **Card Containers:** Glass Dark Slate (`0x10A2`) with subtle borders (`0x3166`)
+* **Neon Accents:** Electric Magenta (`0xFAAA` / `#FF2E93`), Deep Violet (`0x8A1F`), Electric Cyan (`0x06BF`), Connected Green (`0x07E0`), Warm Amber (`0xFDA0`), SoundCloud Orange (`0xFD20`)
+* **Unified Status Bar:** `< Mode Name`, Real-Time Digital Clock (`10:24`), Bluetooth Icon, Wi-Fi Arc Icon, Battery Level Gauge
+
+### Complete 16-Screen Display Matrix
+
+| Screen Mode | Screen View | Primary Visual Elements | Encoder Controls |
+| :--- | :--- | :--- | :--- |
+| **0. Boot Splash** | `UI_SCREEN_BOOT_SPLASH` | Glowing circular musical emblem, "Croenix Audio", "Lossless Music Player", animated bottom neon waves | Automatic boot transition |
+| **1. Home Grid** | `UI_SCREEN_HOME` | 2x4 Glowing Mode Cards: `SD Card`, `USB`, `Bluetooth`, `FM Radio`, `Web FM`, `SoundCloud`, `AUX`, `More` + 3 carousel dots | **Turn:** Move pink highlight cursor<br>**Click:** Enter selected mode |
+| **2. SD Now Playing** | `UI_SCREEN_NOW_PLAYING` | Vinyl album art box, Track Title, Artist, `FLAC 44.1k/16b` badge, progress bar (0:51 / -1:42), real-time neon waveform, controls (`|<`, Play, `>|`) | **Turn:** Next / Prev track<br>**Click:** Play / Pause<br>**Hold (750ms):** Back to Home |
+| **3. SD Music List** | `UI_SCREEN_PLAYLIST` | 3-track playlist cards with artwork thumbnails, title, artist, duration (`3:21`, `5:14`, `4:37`), active track glowing border | **Turn:** Scroll tracks<br>**Click:** Play track |
+| **4. FM Radio** | `UI_SCREEN_FM_RADIO` | Large digital frequency (`98.30 MHz`), tuning arrows (`< >`), real-time broadcast spectrum visualizer, 4 preset capsules (`P1 91.1`, `P2 98.3`, `P3 100.8`, `P4 104.8`) | **Turn:** Tune ±0.1 MHz<br>**Click:** Cycle Presets P1-P4 |
+| **5. Bluetooth** | `UI_SCREEN_BLUETOOTH` | Large glowing circular Bluetooth ring with pulse waves, `● Connected`, `OnePlus 12`, transport buttons (`|<`, Play, `>|`) | **Turn:** Volume<br>**Click:** Play / Pause |
+| **6. Web FM** | `UI_SCREEN_WEB_FM` | Station cards: `BBC Radio 1` (Active glowing capsule), `Chillout Lounge`, `Trance FM` with station logos | **Turn:** Scroll stations<br>**Click:** Tune station |
+| **7. SoundCloud** | `UI_SCREEN_SOUNDCLOUD` | Orange cloud badge, 4 menu items: `🔥 Trending`, `♥ Your Likes`, `≡ Playlists`, `👥 Following` | **Turn:** Select category<br>**Click:** Open stream |
+| **8. Equalizer** | `UI_SCREEN_EQUALIZER` | `Equalizer` ON switch, 5-band vertical sliders (`60`, `250`, `1k`, `4k`, `16k`) with white slider beads, presets (`Flat`, `Rock`, `Pop`, `Jazz`) | **Turn:** Cycle Presets<br>**Click:** Apply Preset |
+| **9. USB Drive** | `UI_SCREEN_USB` | 3D USB drive vector graphic, "USB Drive", "128 GB \| 412 Songs", bottom neon wave | **Turn:** Volume<br>**Hold:** Back to Home |
+| **10. AUX In** | `UI_SCREEN_AUX` | 3.5mm stereo jack graphic, "AUX IN", "External Audio", live audio spectrum waveform | **Turn:** Volume<br>**Hold:** Back to Home |
+| **11. Settings** | `UI_SCREEN_SETTINGS` | 4 settings categories: `Audio`, `Display`, `Network`, `System` with navigation chevrons | **Turn:** Browse<br>**Click:** Select |
+| **12. About** | `UI_SCREEN_ABOUT` | ESP32 chip graphic, "Croenix Audio v3.0.0 Hi-Fi", supported codecs (`FLAC/WAV/MP3/AAC`), neon wave footer | **Click / Hold:** Back to Home |
+| **13. Song Info** | `UI_SCREEN_SONG_INFO` | Detailed ID3 view: Album Art, Title, Artist, Album, Year, `FLAC 44.1k / 16-bit` format capsule | **Click / Hold:** Back to Home |
+| **14. Volume HUD** | `UI_SCREEN_VOLUME` | Large readout (`68%`), `[-]` and `[+]`, glowing horizontal pink slider with round white thumb, speaker icon with 10-segment rising LED meter | **Turn:** Adjust Volume (0-100%) |
+| **15. Diagnostics** | `UI_SCREEN_HARDWARE_DIAGNOSTICS`| Diagnostic telemetry: DAC (I2S DMA), FM Radio (Si4703), SD Card (FAT32), ESP32 (Heap/Cores) | **Hold 8s:** Toggle Diag Screen |
 
 ---
 

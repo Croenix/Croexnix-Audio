@@ -27,6 +27,7 @@ bool switchAudioSource(AudioSource source);
 // Equalizer presets
 void setEQPreset(uint8_t preset);
 uint8_t getEQPreset();
+void setHardwareTone(int8_t bass, int8_t mid, int8_t treble);
 
 // Codec-specific functions
 bool loadMP3File(const char* filepath);

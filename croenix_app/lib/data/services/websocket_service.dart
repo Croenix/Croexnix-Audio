@@ -40,6 +40,15 @@ class WebSocketService {
   final _connectionController = StreamController<bool>.broadcast();
   Stream<bool> get connectionStream => _connectionController.stream;
 
+  // Track list & File list streams for SD Card explorer
+  final _trackListController = StreamController<List<Map<String, dynamic>>>.broadcast();
+  Stream<List<Map<String, dynamic>>> get trackListStream => _trackListController.stream;
+  List<Map<String, dynamic>> _lastTrackList = [];
+  List<Map<String, dynamic>> get lastTrackList => _lastTrackList;
+
+  final _fileListController = StreamController<List<Map<String, dynamic>>>.broadcast();
+  Stream<List<Map<String, dynamic>>> get fileListStream => _fileListController.stream;
+
   String? _deviceIP;
   String? get deviceIP => _deviceIP;
   int _port = 8080;
@@ -62,7 +71,18 @@ class WebSocketService {
     }
   }
 
-  // Auto-connect on startup: tries saved IP, then default AP IP (192.168.4.1), then mDNS
+  // Fast non-intrusive TCP socket probe (does not trigger reconnect loops)
+  Future<bool> _probeHost(String ip, int port, Duration timeout) async {
+    try {
+      final socket = await Socket.connect(ip, port, timeout: timeout);
+      await socket.close();
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  // Auto-connect on startup: probes saved IP, ESP32 AP (192.168.4.1), and mDNS safely
   Future<bool> autoConnect() async {
     if (isConnected) return true;
 
@@ -70,34 +90,40 @@ class WebSocketService {
       final prefs = await SharedPreferences.getInstance();
       final lastIP = prefs.getString(_prefLastIPKey);
 
+      final candidateIPs = <String>[];
       if (lastIP != null && lastIP.isNotEmpty) {
-        print('[WebSocket] Auto-connecting to saved IP: $lastIP');
-        final success = await connect(lastIP, timeout: const Duration(seconds: 3));
-        if (success) return true;
+        candidateIPs.add(lastIP);
       }
+      if (!candidateIPs.contains(defaultApIP)) candidateIPs.add(defaultApIP);
 
-      // Try default AP mode IP
-      print('[WebSocket] Trying default AP IP ($defaultApIP)...');
-      final apSuccess = await connect(defaultApIP, timeout: const Duration(seconds: 2));
-      if (apSuccess) return true;
+      print('[WebSocket] Probing candidates: $candidateIPs');
+      for (final ip in candidateIPs) {
+        final isUp = await _probeHost(ip, _port, const Duration(seconds: 1));
+        if (isUp) {
+          print('[WebSocket] Host $ip responded! Connecting...');
+          final success = await connect(ip, timeout: const Duration(seconds: 3), autoReconnect: true);
+          if (success) return true;
+        }
+      }
 
       // Try mDNS discovery
       print('[WebSocket] Running mDNS discovery for Croenix...');
       final discovery = DiscoveryService();
       discovery.startDiscovery();
-      await Future.delayed(const Duration(seconds: 3));
+      await Future.delayed(const Duration(seconds: 2));
       final devices = discovery.devices;
       discovery.stopDiscovery();
 
       if (devices.isNotEmpty) {
         final target = devices.first;
         print('[WebSocket] Found mDNS device: ${target.ipAddress}');
-        return await connect(target.ipAddress, port: target.port);
+        return await connect(target.ipAddress, port: target.port, autoReconnect: true);
       }
     } catch (e) {
       print('[WebSocket] Auto-connect error: $e');
     }
 
+    _setStatus(ConnectionStatus.disconnected);
     return false;
   }
 
@@ -106,6 +132,7 @@ class WebSocketService {
     String ip, {
     int port = 8080,
     Duration timeout = const Duration(seconds: 4),
+    bool autoReconnect = true,
   }) async {
     if (_status == ConnectionStatus.connecting) {
       print('[WebSocket] Already connecting...');
@@ -156,7 +183,9 @@ class WebSocketService {
       print('[WebSocket] Connection failed to $_deviceIP:$_port: $e');
       _channel = null;
       _setStatus(ConnectionStatus.error);
-      _scheduleReconnect();
+      if (autoReconnect) {
+        _scheduleReconnect();
+      }
       return false;
     }
   }
@@ -248,7 +277,17 @@ class WebSocketService {
     sendCommand('source', {'value': source.index});
   }
 
-  void setEQPreset(int preset) => sendCommand('eq', {'value': preset});
+  void setEQPreset(int preset) {
+    _currentState = _currentState.copyWith(eqPreset: preset);
+    _stateController.add(_currentState);
+    sendCommand('eq', {'value': preset});
+  }
+
+  void setHardwareTone(int bass, int mid, int treble) {
+    _currentState = _currentState.copyWith(eqBass: bass, eqMid: mid, eqTreble: treble);
+    _stateController.add(_currentState);
+    sendCommand('set_tone', {'bass': bass, 'mid': mid, 'treble': treble});
+  }
 
   // === Wi-Fi Configuration ===
   void configureWiFi(String ssid, String password) {
@@ -257,11 +296,15 @@ class WebSocketService {
 
   void scanNetworks() => sendCommand('scan_networks');
 
-  // === File Management ===
+  // === File & Track Management ===
   void listFiles(String path) => sendCommand('file_list', {'path': path});
 
   void loadFile(String filepath) =>
       sendCommand('load_file', {'path': filepath});
+
+  void requestTrackList() => sendCommand('get_tracks');
+
+  void playSDIndex(int index) => sendCommand('play_index', {'index': index});
 
   // === FM Radio ===
   void setFMFrequency(double frequency) {
@@ -272,6 +315,7 @@ class WebSocketService {
 
   void seekFMUp() => sendCommand('fm_seek', {'dir': 1});
   void seekFMDown() => sendCommand('fm_seek', {'dir': -1});
+  void seekBestFMStation() => sendCommand('fm_seek_best');
 
   // === Web Streaming & SoundCloud ===
   void loadStreamURL(String url, {String? title, String? artist, String? album}) {
@@ -384,6 +428,19 @@ class WebSocketService {
           break;
         case 'network_info':
           _handleNetworkInfo(data);
+          break;
+        case 'track_list':
+          if (data.containsKey('tracks') && data['tracks'] is List) {
+            _lastTrackList = List<Map<String, dynamic>>.from(data['tracks']);
+            _trackListController.add(_lastTrackList);
+            _currentState = _currentState.copyWith(sdTotalTracks: _lastTrackList.length);
+            _stateController.add(_currentState);
+          }
+          break;
+        case 'file_list':
+          if (data.containsKey('files') && data['files'] is List) {
+            _fileListController.add(List<Map<String, dynamic>>.from(data['files']));
+          }
           break;
         default:
           // Also check if state fields are sent in a general message

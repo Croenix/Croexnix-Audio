@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:multicast_dns/multicast_dns.dart';
 import '../models/discovered_device.dart';
 
@@ -14,7 +15,23 @@ class DiscoveryService {
     print('[Discovery] Starting mDNS discovery...');
 
     try {
-      _mdnsClient = MDnsClient();
+      _mdnsClient = MDnsClient(
+        rawDatagramSocketFactory: (
+          dynamic host,
+          int port, {
+          bool reuseAddress = true,
+          bool reusePort = false,
+          int ttl = 1,
+        }) {
+          return RawDatagramSocket.bind(
+            host,
+            port,
+            reuseAddress: true,
+            reusePort: false, // Fix for Android: reusePort is not supported
+            ttl: ttl,
+          );
+        },
+      );
       await _mdnsClient!.start();
 
       // Query for Croenix audio service
