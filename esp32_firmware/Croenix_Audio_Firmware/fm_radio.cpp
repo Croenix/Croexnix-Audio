@@ -9,6 +9,8 @@ static SI470X radio;
 static bool fmInitialized = false;
 
 bool checkFMIntegrity() {
+    if (!fmInitialized) return false;
+    Wire.setTimeOut(20);
     Wire.beginTransmission(0x10);
     byte err1 = Wire.endTransmission();
     if (err1 == 0) {
@@ -27,17 +29,48 @@ bool checkFMIntegrity() {
         g_deviceState.fmOperational = true;
         return true;
     }
-    g_deviceState.fmOperational = fmInitialized;
-    return fmInitialized;
+    g_deviceState.fmOperational = false;
+    return false;
 }
 
 void initFMRadio() {
-    DEBUG_PRINTLN("[FM] Initializing HW-322 FM radio module (I2C)...");
+    DEBUG_PRINTLN("[FM] Probing for HW-322 FM radio module (I2C)...");
 
+    // Initialize Wire with custom pins (SDA=21, SCL=27).
+    // NEVER allow Wire to default to SCL=22 because GPIO 22 is dedicated to I2S DAC (LCK)!
     Wire.begin(FM_SDA, FM_SCL);
+    Wire.setTimeOut(20);
 
-    // Initialize Si4703 with Reset and SDA pins
+    // Non-blocking ping: Probe Si4703 (0x10) or TEA5767 (0x60)
+    Wire.beginTransmission(0x10);
+    byte err = Wire.endTransmission();
+    if (err != 0) {
+        Wire.beginTransmission(0x60);
+        err = Wire.endTransmission();
+    }
+    if (err != 0) {
+        Wire.beginTransmission(0x11);
+        err = Wire.endTransmission();
+    }
+
+    if (err != 0) {
+        DEBUG_PRINTLN("[FM] ⚠️  No FM module responding on I2C (SDA=21, SCL=27). Skipping FM init to prevent boot freeze.");
+        fmInitialized = false;
+        if (xSemaphoreTake(g_stateMutex, pdMS_TO_TICKS(50)) == pdTRUE) {
+            g_deviceState.fmOperational = false;
+            xSemaphoreGive(g_stateMutex);
+        }
+        Wire.end(); // Release pins so GPIO 22 / DAC remain pristine
+        return;
+    }
+
+    // Module physically present - initialize Si4703
     radio.setup(FM_RST, FM_SDA);
+    // NOTE: PU2CLR_SI470X::setup internally resets Wire to default pins (SCL=22).
+    // We immediately restore Wire to FM_SDA (21) and FM_SCL (27) to avoid colliding with DAC LCK (22)!
+    Wire.begin(FM_SDA, FM_SCL);
+    Wire.setTimeOut(20);
+
     radio.setVolume(15);
     radio.setBand(0);    // 0 = 87.5–108 MHz (US / Europe)
     radio.setSpace(1);   // 1 = 100 kHz spacing
@@ -46,7 +79,10 @@ void initFMRadio() {
     radio.setFrequency(8800);
 
     fmInitialized = true;
-    checkFMIntegrity();
+    if (xSemaphoreTake(g_stateMutex, pdMS_TO_TICKS(50)) == pdTRUE) {
+        g_deviceState.fmOperational = true;
+        xSemaphoreGive(g_stateMutex);
+    }
 
     DEBUG_PRINTF("[FM] HW-322 status: %s\n", g_deviceState.fmOperational ? "ONLINE" : "PENDING/OFFLINE");
 }

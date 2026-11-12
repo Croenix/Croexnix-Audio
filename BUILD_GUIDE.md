@@ -1,392 +1,253 @@
-# Croenix Audio - Complete Build Guide
-
-## Hardware Setup
-
-### Components Purchased
-✅ ESP32-WROOM-32 (38-pin)
-✅ CJMCU-5102 I²S DAC
-✅ MicroSD SPI reader
-✅ Si4703 FM module
-✅ 1.8" TFT LCD (ST7735)
-✅ Gold A542 Class-D amplifier
-
-### Wiring Diagram
-
-#### I2S DAC (CJMCU-5102)
-```
-ESP32 GPIO 26 → BCK (Bit Clock)
-ESP32 GPIO 25 → WS/LRCK (Word Select)
-ESP32 GPIO 22 → DATA
-ESP32 3.3V → VCC
-ESP32 GND → GND
-DAC LOUT → Amplifier Left Input
-DAC ROUT → Amplifier Right Input
-```
-
-#### SPI Display (ST7735 1.8" TFT)
-```
-ESP32 GPIO 23 → MOSI
-ESP32 GPIO 18 → SCK
-ESP32 GPIO 5 → CS
-ESP32 GPIO 2 → DC/RS
-ESP32 GPIO 4 → RST
-ESP32 3.3V → VCC
-ESP32 3.3V → LED (with resistor)
-ESP32 GND → GND
-```
-
-#### SD Card Reader (SPI - shared bus)
-```
-ESP32 GPIO 23 → MOSI (shared with TFT)
-ESP32 GPIO 19 → MISO
-ESP32 GPIO 18 → SCK (shared with TFT)
-ESP32 GPIO 15 → CS
-ESP32 3.3V → VCC
-ESP32 GND → GND
-```
-
-#### FM Radio (Si4703 I²C)
-```
-ESP32 GPIO 21 → SDA
-ESP32 GPIO 22 → SCL
-ESP32 GPIO 16 → RST
-ESP32 3.3V → VCC
-ESP32 GND → GND
-```
-
-#### Amplifier (Gold A542)
-```
-DAC LOUT → AMP Left Input
-DAC ROUT → AMP Right Input
-12V Power Supply → AMP VCC
-GND → AMP GND
-AMP Output → Speakers
-```
+# Croenix Audio - Complete Build & Integration Guide
+**Version 3.0 (Production Release)**  
+High-Performance, Low-Memory Embedded Architecture for ESP32-WROOM-32 & Flutter Mobile Companion
 
 ---
 
-## ESP32 Firmware Installation
+## 1. Hardware Specifications & Components
 
-### Prerequisites
-- Install [PlatformIO](https://platformio.org/) extension in VS Code
-- USB cable for ESP32
-- CH340/CP2102 drivers (if needed)
-
-### Steps
-
-1. **Connect ESP32 via USB**
-```bash
-# Windows: Check device manager for COM port
-# Linux/Mac: Check /dev/ttyUSB* or /dev/cu.usbserial*
-```
-
-2. **Open Project**
-```bash
-cd esp32_firmware
-```
-
-3. **Build Firmware**
-```bash
-pio run
-```
-
-4. **Upload to ESP32**
-```bash
-pio run --target upload
-```
-
-5. **Monitor Serial Output**
-```bash
-pio device monitor
-```
-
-### Expected Serial Output
-```
-===========================================
-ESP32 High-Fidelity Audio Player
-===========================================
-
-[INIT] Creating FreeRTOS tasks...
-[AUDIO TASK] Starting on Core 0...
-[NETWORK TASK] Starting on Core 0...
-[DISPLAY TASK] Starting on Core 1...
-[CONTROL TASK] Starting on Core 1...
-[WIFI] No saved credentials found
-[WIFI] Starting in Access Point mode...
-[WIFI] AP started successfully!
-[WIFI] SSID: ESP32-Audio-Setup
-[WIFI] IP Address: 192.168.4.1
-[WEBSOCKET] Server started on port 8080
-[DISPLAY] TFT initialized successfully
-[FM] Si4703 initialized successfully
-[SD] Card mount failed!  // Normal if no SD card inserted
-[AUDIO] I2S initialized successfully
-```
+| Component | Part / Model | Purpose / Interface |
+| :--- | :--- | :--- |
+| **Microcontroller** | ESP32-WROOM-32 (38-Pin DevKit) | Dual-core Tensilica Xtensa 240 MHz, 520 KB SRAM |
+| **I²S Hi-Fi DAC** | CJMCU-5102 / WCMCU (TI PCM5102A) | 32-bit / 384 kHz Stereo Audio DAC via I²S DMA |
+| **SPI Display** | 1.8" Color TFT LCD (ST7735) | 160x128 SPI color screen with cyber glassmorphism UI |
+| **MicroSD Reader** | MicroSD SPI Card Reader Module | FAT32 Local MP3 / FLAC / AAC audio storage |
+| **FM Radio Tuner** | HW-322 (Silicon Labs Si4703) | 87.5–108 MHz RDS/FM receiver via I²C bus |
+| **Rotary Controller**| KY-040 5-Pin Rotary Encoder | Quadrature input with push-button interrupt logic |
+| **Audio Amplifier** | Gold A542 / TPA3116D2 Class-D | Stereo speaker drive |
 
 ---
 
-## Flutter App Installation
+## 2. Complete Hardware Wiring & Pin Mapping
 
-### Android
+> [!IMPORTANT]
+> **GPIO 22 vs GPIO 27 Resolution:**  
+> The Si4703 FM module's I²C clock (**SCL**) is assigned to **GPIO 27** to guarantee zero bus contention with the PCM5102A DAC's Word Select Clock (**LCK**) on **GPIO 22**.
 
-1. **Install Flutter**
-```bash
-# Install Flutter SDK
-# https://docs.flutter.dev/get-started/install
+### A. I²S DAC (TI PCM5102A / CJMCU-5102)
 
-flutter doctor
-```
+| PCM5102A Pin | ESP32 Pin / Rail | Function | Notes |
+| :--- | :--- | :--- | :--- |
+| **VCC** | **VIN (5V)** or **3.3V** | Power rail | Connect to 5V (if module has 3.3V LDO) or 3.3V |
+| **GND** | **GND** | Power ground | Common system ground |
+| **BCK** | **GPIO 26** | I²S Bit Clock | Hardware Bit Clock |
+| **DIN** | **GPIO 25** | I²S Serial Data | Audio data payload |
+| **LCK** | **GPIO 22** | I²S Word Select (`WS` / `LRCK`) | Left/Right frame clock |
+| **SCK / SCL** | **GND** | Internal PLL Master Clock | **CRITICAL:** Tie to GND so PLL derives system clock from BCK |
+| **XMT** | **3.3V** | Soft-Unmute / Audio Enable | **CRITICAL:** Tie to 3.3V (HIGH) to unmute audio output |
+| **LOUT** | **AMP Left In** | Analog Left Channel | Route to Class-D amplifier |
+| **ROUT** | **AMP Right In** | Analog Right Channel | Route to Class-D amplifier |
 
-2. **Setup Project**
-```bash
-cd croenix_app
-flutter pub get
-```
+### B. 1.8" ST7735 TFT Display (SPI)
 
-3. **Connect Android Phone**
-- Enable Developer Options
-- Enable USB Debugging
-- Connect via USB
+| ST7735 Pin | ESP32 Pin | Function / Description |
+| :--- | :--- | :--- |
+| **VCC** | **3.3V** | Display logic power |
+| **GND** | **GND** | Display ground |
+| **CS** | **GPIO 5** | Dedicated Display Chip Select |
+| **RESET / RST** | **GPIO 4** | Hardware display reset |
+| **A0 / DC** | **GPIO 2** | Data / Command register select |
+| **SDA / MOSI** | **GPIO 23** | SPI Master-Out-Slave-In (Shared bus) |
+| **SCK / SCL** | **GPIO 18** | SPI Bus Clock (Shared bus) |
+| **LED / BL** | **3.3V** | Backlight anode (direct or via 100Ω resistor) |
 
-4. **Run App**
-```bash
-flutter devices  # Check connected devices
-flutter run
-```
+### C. MicroSD Card Adapter (SPI - Shared Bus with TFT)
 
-5. **Build APK** (optional)
-```bash
-flutter build apk --release
-# APK location: build/app/outputs/flutter-apk/app-release.apk
-```
+| MicroSD Module Pin | ESP32 Pin | Function / Description |
+| :--- | :--- | :--- |
+| **VCC** | **5V** or **3.3V** | Power (Check module regulator: 5V for buffered boards) |
+| **GND** | **GND** | Common ground |
+| **CS** | **GPIO 15** | Dedicated SD Card Chip Select |
+| **MOSI / DI** | **GPIO 23** | SPI Master-Out-Slave-In (Shared with TFT) |
+| **SCK / CLK** | **GPIO 18** | SPI Bus Clock (Shared with TFT) |
+| **MISO / DO** | **GPIO 19** | SPI Master-In-Slave-Out (Internal pull-up enabled) |
 
-### iOS
+### D. HW-322 FM Radio (Si4703 - I²C)
 
-1. **Prerequisites**
-- macOS with Xcode installed
-- Apple Developer account (for deployment)
+| Si4703 Pin | ESP32 Pin | Function / Description |
+| :--- | :--- | :--- |
+| **VCC** | **3.3V** | Module logic power |
+| **GND** | **GND** | Common ground |
+| **SDIO / SDA** | **GPIO 21** | I²C Data line |
+| **SCLK / SCL** | **GPIO 27** | I²C Clock line (Assigned to 27) |
+| **RST** | **GPIO 16** | Hardware chip reset |
+| **ANT** | **External Wire** | 75 cm wire or telescopic FM antenna |
 
-2. **Setup**
-```bash
-cd croenix_app
-flutter pub get
-cd ios
-pod install
-```
+### E. KY-040 Rotary Encoder
 
-3. **Run on Simulator/Device**
-```bash
-flutter run
-```
-
----
-
-## First-Time Setup Walkthrough
-
-### Step 1: Power On ESP32
-1. Connect ESP32 to 5V power supply
-2. Display should show "CROENIX" splash screen
-3. After 2 seconds, main screen appears with "AP Mode" indicator
-
-### Step 2: Connect Mobile App to ESP32
-1. Launch Croenix Audio app on phone
-2. App shows "Setup Device" screen
-3. Wait for device discovery (scans for `ESP32-Audio-Setup`)
-4. If not found, connect phone to Wi-Fi: **ESP32-Audio-Setup** (no password)
-5. Tap on discovered device to connect
-
-### Step 3: Configure Wi-Fi
-1. App shows available Wi-Fi networks
-2. Select your home network
-3. Enter password
-4. Tap "Connect to Network"
-5. ESP32 reboots and connects to home Wi-Fi
-6. App automatically reconnects via mDNS (`esp32-audio.local`)
-
-### Step 4: Test Audio Playback
-
-#### Test 1: SD Card
-1. Insert microSD card with MP3/FLAC files
-2. Open app → Player screen
-3. Tap "Source" → Select "SD Card"
-4. Browse files and select a track
-5. Press play
-
-#### Test 2: Bluetooth
-1. Open app → Player screen
-2. Tap "Source" → Select "Bluetooth"
-3. On phone, go to Bluetooth settings
-4. Pair with "ESP32-Audio-Player"
-5. Play music from any app (Spotify, YouTube, etc.)
-
-#### Test 3: FM Radio
-1. Connect FM antenna to Si4703 module
-2. Open app → Player screen
-3. Tap "Source" → Select "FM Radio"
-4. Use frequency tuner to find stations
-5. Save favorite stations as presets
-
-#### Test 4: Web Streaming
-1. Open app → Player screen
-2. Tap "Source" → Select "Web Stream"
-3. Enter streaming URL (e.g., internet radio)
-4. Press play
+| KY-040 Pin | ESP32 Pin | Function / Description |
+| :--- | :--- | :--- |
+| **CLK (A)** | **GPIO 32** | Quadrature interrupt channel A |
+| **DT (B)** | **GPIO 33** | Quadrature interrupt channel B |
+| **SW (Key)** | **GPIO 17** | Push-button state switch interrupt |
+| **+ / VCC** | **3.3V** | Pull-up supply |
+| **GND** | **GND** | Common ground |
 
 ---
 
-## Troubleshooting
+## 3. Rotary Encoder Navigation & Diagnostics State Machine
 
-### ESP32 Won't Upload
-- Check USB cable (must support data)
-- Hold BOOT button while uploading
-- Install CH340 drivers
-- Try different COM port
+The firmware uses interrupt-driven quadrature decoding with a hardware debounce state machine:
 
-### Display Not Working
-- Check SPI connections
-- Verify 3.3V power supply
-- Check TFT_CS, TFT_DC, TFT_RST pins
-- Test with example code first
-
-### No Audio Output
-- Check I2S wiring (BCK, WS, DATA)
-- Verify DAC power supply (3.3V)
-- Check amplifier connections
-- Test DAC with headphones first
-
-### SD Card Not Detected
-- Use FAT32 formatted card
-- Check SPI connections
-- Verify CS pin (GPIO 15)
-- Try different SD card
-
-### FM Radio No Signal
-- Connect proper antenna (dipole or whip)
-- Check I2C connections (SDA, SCL)
-- Verify Si4703 power
-- Move away from interference sources
-
-### App Can't Find Device
-- Check ESP32 is powered on
-- Verify phone on same Wi-Fi network
-- Try manual IP entry
-- Check firewall settings
-- Restart both devices
-
-### Bluetooth Pairing Issues
-- Clear Bluetooth pairing history
-- Restart ESP32
-- Re-pair device
-- Check Bluetooth MAC address
+1. **Volume Adjustment (Default):**
+   - Rotating clockwise/counter-clockwise adjusts volume (0% to 100%).
+   - Instantly triggers a temporary glassmorphism Volume HUD overlay on the display without interrupting audio playback.
+2. **Input Mode Cycling (Single Click):**
+   - Single-pressing the encoder button cycles sequentially through input modes:
+     `Bluetooth (BT)` → `SD Card` → `FM Radio` → `SoundCloud Web Stream`.
+3. **FM Tuning Override (In FM Mode):**
+   - In FM mode, pressing the encoder opens a **5-second Tuning Window**.
+   - During these 5 seconds, rotating the encoder steps or seeks radio frequencies.
+   - After 5 seconds of inactivity, the encoder automatically reverts to volume control.
+4. **Hardware Diagnostic Portal (10-Second Long Press):**
+   - Long-pressing the encoder button for 10 seconds from any screen enters the **Hardware Status & Diagnostics Portal**.
+   - Allows live status checks of:
+     1. **WCMCU I²S DAC** (TI PCM5102A DMA streaming integrity, sampling rate, gain)
+     2. **HW-322 FM Radio** (Si4703 I²C bus probe, frequency, RSSI)
+     3. **SD Card Reader** (Filesystem mount, card capacity, track count, FAT32 validation)
+     4. **System & Display** (Core 0/1 CPU load, FreeRTOS heap memory, WiFi telemetry)
 
 ---
 
-## Advanced Configuration
+## 4. ESP32 Firmware Installation
 
-### Adjust Audio Quality
-Edit `esp32_firmware/src/core/config.h`:
+### Prerequisites & Library Dependencies
+
+Ensure the following libraries are installed in Arduino IDE (**Tools → Manage Libraries**):
+* `TFT_eSPI` by Bodmer
+* `ESP32-audioI2S` by schreibfaul1
+* `PU2CLR_SI470X` by Ricardo Lima Caratti
+* `ArduinoJson` (v6.x or v7.x) by Benoit Blanchon
+* `WebSockets` by Markus Sattler
+
+### Configuring TFT_eSPI
+Edit `Arduino/libraries/TFT_eSPI/User_Setup.h`:
 ```cpp
-#define AUDIO_SAMPLE_RATE    48000  // Change from 44100
-#define AUDIO_BITS_PER_SAMPLE  24   // Change from 16
+#define ST7735_DRIVER
+#define TFT_WIDTH  128
+#define TFT_HEIGHT 160
+#define ST7735_BLACKTAB
+
+#define TFT_MOSI 23
+#define TFT_SCLK 18
+#define TFT_CS    5
+#define TFT_DC    2
+#define TFT_RST   4
 ```
 
-### Change Wi-Fi AP Settings
-```cpp
-#define AP_SSID           "MyCustomName"
-#define AP_PASSWORD       "mypassword"  // Add password
-```
+### Arduino IDE Build & Upload Steps
 
-### Customize Display Refresh Rate
-```cpp
-#define DISPLAY_UPDATE_RATE  50  // 50ms (faster updates)
-```
-
-### Enable Debug Logging
-```cpp
-#define DEBUG_SERIAL      true
-#define DEBUG_BAUD_RATE   115200
-```
+1. Open [`esp32_firmware/Croenix_Audio_Firmware/Croenix_Audio_Firmware.ino`](file:///c:/Users/achub/OneDrive/Documents/Music%20Player/esp32_firmware/Croenix_Audio_Firmware/Croenix_Audio_Firmware.ino).
+2. Go to **Tools → Board → ESP32 Arduino → ESP32 Dev Module**.
+3. **CRITICAL SETTING:** Go to **Tools → Partition Scheme** and select:
+   ```
+   Huge APP (3MB No OTA/1MB SPIFFS)
+   ```
+   *(Selecting the default partition will cause a flash overflow error because the firmware with FreeRTOS, I²S audio streaming, Wi-Fi, and WebSockets requires ~2.06 MB).*
+4. Select your COM Port and click **Upload**.
 
 ---
 
-## Network Diagram
+## 5. Flutter Companion Application Setup
 
-```
-[Mobile Phone] <--WiFi--> [Home Router]
-                               ^
-                               |
-                          WiFi/mDNS
-                               |
-                          [ESP32 Device]
-                               |
-                         WebSocket (Port 8080)
-                               |
-                          Local IP/mDNS
-                       esp32-audio.local
-```
+The Flutter application provides a cyber glassmorphism interface with zero-latency WebSocket control, live ID3 metadata streaming, and a dedicated SoundCloud continuous playlist engine.
 
-## System Architecture
+### Setup & Run
 
-```
-┌─────────────────────────────────────┐
-│         Mobile App (Flutter)        │
-│  ┌───────────────────────────────┐  │
-│  │   Home | Player | Settings    │  │
-│  │   Glassmorphism UI             │  │
-│  └───────────────┬─────────────── ┘  │
-│                  │ WebSocket          │
-│         ┌────────┴────────┐          │
-│         │  mDNS Discovery  │          │
-│         └─────────────────┘          │
-└──────────────────┬──────────────────┘
-                   │
-         Network (WiFi/AP)
-                   │
-┌──────────────────┴──────────────────┐
-│          ESP32 Firmware             │
-│                                      │
-│  Core 0:  │  Core 1:                │
-│  ─────────┤  ─────────              │
-│  Audio    │  Display                │
-│  Network  │  Control                │
-│           │  Peripherals            │
-│                                      │
-│  ┌──────┐  ┌────┐  ┌──┐  ┌────┐   │
-│  │ I2S  │  │TFT │  │SD│  │ FM │   │
-│  │ DAC  │  │LCD │  │  │  │Radio│  │
-│  └──┬───┘  └────┘  └──┘  └────┘   │
-└─────┼──────────────────────────────┘
-      │
-  ┌───┴───┐
-  │  AMP  │
-  └───┬───┘
-      │
- ┌────┴────┐
- │ Speakers│
- └─────────┘
-```
+1. Open a terminal in the application folder:
+   ```bash
+   cd croenix_app
+   flutter pub get
+   ```
+2. Verify code integrity:
+   ```bash
+   flutter analyze
+   ```
+3. Run on connected Android / iOS device or emulator:
+   ```bash
+   flutter run
+   ```
+4. Build release APK for Android:
+   ```bash
+   flutter build apk --release
+   ```
+   *Output binary location: `croenix_app/build/app/outputs/flutter-apk/app-release.apk`*
 
 ---
 
-## Next Steps
+## 6. Zero-Handoff QR Provisioning Protocol
 
-1. ✅ Complete hardware assembly
-2. ✅ Flash ESP32 firmware
-3. ✅ Install mobile app
-4. ✅ Test all audio sources
-5. ⬜ Add album art support
-6. ⬜ Implement playlist management
-7. ⬜ Add OTA firmware updates
-8. ⬜ Create custom case/enclosure
+1. **Unprovisioned Boot:**
+   - If no Wi-Fi credentials are stored in NVS, the ESP32 hosts a secure Access Point:
+     - **SSID:** `CROENIX-AUDIO-SETUP`
+     - **Static IP:** `192.168.4.1`
+   - The ST7735 display renders a dynamic QR code containing encrypted connection parameters.
+2. **Mobile Scan & Sync:**
+   - Open the Croenix app and tap **Scan QR Code**.
+   - Point the camera at the TFT display. The app automatically connects to the AP, transmits your home Wi-Fi credentials, and triggers the ESP32 to transition to Station Mode.
+3. **mDNS & WebSocket Reconnect:**
+   - Once connected to your router, the ESP32 broadcasts via mDNS at `croenix-audio.local`.
+   - The mobile app establishes a bidirectional WebSocket connection on port `8080` (`ws://croenix-audio.local:8080`).
 
-## Support
+---
 
-For issues and questions:
-- Check serial monitor output
-- Review pin connections
-- Test components individually
-- Read component datasheets
+## 7. SoundCloud Playlist Streaming Engine
 
-## License
+The application features a dedicated SoundCloud streaming suite:
+* **Curated Continuous Channels:**
+  - *Synthwave / Retro Electro*
+  - *Lofi Chillhop Beats*
+  - *Cyberpunk Industrial Bass*
+  - *Melodic Deep House*
+  - *Drum & Bass Energy*
+  - *Acoustic Indie Sessions*
+* **"Play All Songs" Continuous Engine:**
+  - Tap **Play All Songs** in the SoundCloud tab to start sequential, gapless playback.
+  - The firmware automatically requests the next track upon completion, broadcasting real-time ID3 tags (Track Title, Artist, Duration, Bitrate) to both the TFT display and mobile app.
+* **Custom Stream Input:**
+  - Enter any direct audio stream or SoundCloud feed URL in the app to route playback through the PCM5102A I²S DAC.
 
-MIT License - See LICENSE file
+---
+
+## 8. Hardware Diagnostics & Troubleshooting
+
+### Display Stuck on "CROENIX AUDIOS" Splash Screen
+* **Cause:** The FM radio module probe hung on I²C clock-stretching.
+* **Solution:** Firmware v3.0 includes `Wire.setTimeOut(20)` non-blocking bus probing. If no Si4703 is detected, it cleanly disables FM radio and boots immediately to `UI_SCREEN_HOME`.
+
+### PCM5102A DAC Has Only Red LED / No Sound
+* **Check Jumpers:**
+  1. `SCK / SCL` must be tied directly to **GND** (enables internal PLL from BCK).
+  2. `XMT` must be tied directly to **3.3V** (disables soft mute).
+  3. `FLT`, `DMP`, `FMT` must be tied to **GND**.
+* **Check Wiring:**
+  - `BCK` → **GPIO 26**
+  - `DIN` → **GPIO 25**
+  - `LCK` → **GPIO 22**
+
+### MicroSD Card Mount Failed
+* Format the MicroSD card as **FAT32** (exFAT and NTFS are not supported).
+* Use cards 32 GB or smaller for standard SPI compatibility.
+* Ensure `MISO` (GPIO 19) is firmly connected; the firmware enables internal pull-ups on this pin.
+* Long-press the rotary encoder for 10 seconds to inspect the SD Card diagnostic card on the TFT screen.
+
+### Compilation Fails ("Text Section Exceeds Space")
+* In Arduino IDE, change **Tools → Partition Scheme** to **Huge APP (3MB No OTA/1MB SPIFFS)**.
+
+---
+
+## 9. Firmware Multi-Core Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                 ESP32 DUAL-CORE ARCHITECTURE                │
+├──────────────────────────────┬──────────────────────────────┤
+│    CORE 1: DEDICATED AUDIO   │    CORE 0: CONTROL & COMM    │
+├──────────────────────────────┼──────────────────────────────┤
+│ • I²S DMA Buffer Streaming   │ • Non-blocking ST7735 SPI UI │
+│ • MP3/FLAC/AAC Audio Decoder │ • Wi-Fi Station & SoftAP     │
+│ • Zero Latency Buffer Loop   │ • WebSocket Server (8080)    │
+│ • Uninterrupted Hi-Fi Sound  │ • Rotary Encoder ISR Logic   │
+│                              │ • mDNS Discovery Service     │
+└──────────────────────────────┴──────────────────────────────┘
+```

@@ -176,17 +176,13 @@ void setup() {
     DEBUG_PRINTLN("[INIT] Initializing device state...");
     initDeviceState();
 
-    // Initialize audio subsystem (I²S DAC)
-    DEBUG_PRINTLN("[INIT] Initializing audio manager...");
-    initAudioManager();
-
     // Initialize SD card (non-blocking, will retry if failed)
     DEBUG_PRINTLN("[INIT] Initializing SD card manager...");
     if (!initSDManager()) {
         DEBUG_PRINTLN("[INIT] ⚠️  SD card mount failed - will retry in background");
     }
 
-    // Initialize display (ST7735 TFT)
+    // Initialize display (ST7735 TFT) - Splash screen is displayed here
     DEBUG_PRINTLN("[INIT] Initializing display manager...");
     initDisplayManager();
 
@@ -194,16 +190,17 @@ void setup() {
     DEBUG_PRINTLN("[INIT] Initializing encoder...");
     initEncoderManager();
 
-    // Initialize FM radio (optional)
+    // Initialize FM radio (optional, non-blocking hardware probe)
 #if ENABLE_FM_RADIO
     DEBUG_PRINTLN("[INIT] Initializing FM radio...");
     initFMRadio();
 #endif
 
-    // Show boot splash (display manager handles this)
-    DEBUG_PRINTLN("[INIT] Displaying boot splash...");
-    setUIScreen(UI_SCREEN_BOOT_SPLASH);
-    delay(BOOT_DELAY_MS);
+    // Initialize audio subsystem (I²S DAC) - Guarantees DAC ownership of BCK26, DIN25, LRC22
+    DEBUG_PRINTLN("[INIT] Initializing audio manager (I2S DAC)...");
+    initAudioManager();
+
+    // Instant transition from Splash to Home Screen
     setUIScreen(UI_SCREEN_HOME);
 
     DEBUG_PRINTLN("════════════════════════════════════════════════════════════");

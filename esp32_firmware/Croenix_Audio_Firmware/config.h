@@ -23,9 +23,9 @@
 //   H3 Jumper  → MUST be soldered to H position (XSMT to VCC - unmute)
 //   VCC → 3.3V or 5V depending on module regulator
 // =========================================================================
-#define I2S_BCLK      26  // Bit Clock (BCK)
-#define I2S_LRC       25  // Left/Right Clock (LCK/WS)
-#define I2S_DOUT      27  // Data Out (DIN) - VERIFIED ASSIGNMENT
+#define I2S_BCLK      26  // Bit Clock (BCK) - GPIO 26
+#define I2S_DOUT      25  // Data Out (DIN) - GPIO 25 (Matches user hardware wiring)
+#define I2S_LRC       22  // Left/Right Clock (LCK/WS) - GPIO 22 (Matches user hardware wiring)
 
 // =========================================================================
 // ST7735 1.8" TFT Display (128x160 SPI)
@@ -53,7 +53,7 @@
 // Si4703 FM Radio Module (I²C)
 // =========================================================================
 #define FM_SDA        21  // I²C Data (SDIO)
-#define FM_SCL        22  // I²C Clock (SCLK)
+#define FM_SCL        27  // I²C Clock (SCLK) - Moved to GPIO 27 to avoid pin conflict with I2S LCK on GPIO 22
 #define FM_RST        16  // Hardware Reset
 
 // =========================================================================

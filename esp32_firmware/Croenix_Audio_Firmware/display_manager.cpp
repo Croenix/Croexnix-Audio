@@ -164,7 +164,6 @@ void updateDisplay() {
     if (!displayInitialized) return;
 
     unsigned long now = millis();
-    if (now - lastUpdate < DISPLAY_UPDATE_RATE) return;
     lastUpdate = now;
 
     // Bluetooth LED blink ticker (Red: 500ms, Blue Pairing: 250ms)
@@ -255,7 +254,7 @@ void showHardwareDiagnosticsScreen() {
 
                 tft.setTextColor(COLOR_WHITE, COLOR_DEEP_BG);
                 tft.drawString("TI PCM5102A (I2S DMA)", 10, 38);
-                tft.drawString("DIN27 BCK26 LRC25", 10, 48);
+                tft.drawString("DIN25 BCK26 LRC22", 10, 48);
 
                 // Hardware Jumper Wiring Directives
                 tft.setTextColor(COLOR_AMBER, COLOR_DEEP_BG);
