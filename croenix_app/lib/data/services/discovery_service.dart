@@ -1,51 +1,85 @@
 import 'dart:async';
-import 'dart:developer' as developer;
-import '../../core/constants/app_constants.dart';
+import 'dart:io';
+import 'package:multicast_dns/multicast_dns.dart';
 import '../models/discovered_device.dart';
 
 class DiscoveryService {
-  final List<DiscoveredDevice> _discoveredDevices = [];
   final _devicesController = StreamController<List<DiscoveredDevice>>.broadcast();
-
   Stream<List<DiscoveredDevice>> get devicesStream => _devicesController.stream;
-  List<DiscoveredDevice> get devices => List.unmodifiable(_discoveredDevices);
 
+  final List<DiscoveredDevice> _discoveredDevices = [];
+  MDnsClient? _mdnsClient;
+
+  // Start mDNS discovery for ESP32 devices
   Future<void> startDiscovery() async {
-    _discoveredDevices.clear();
+    print('[Discovery] Starting mDNS discovery...');
 
-    // Add hotspot fallback immediately
-    _addDevice(DiscoveredDevice(
-      name: AppConstants.deviceName,
-      ip: AppConstants.defaultHotspotIp,
-      port: AppConstants.defaultPort,
-      hostname: null,
-      method: DiscoveryMethod.hotspot,
-    ));
+    try {
+      _mdnsClient = MDnsClient(
+        rawDatagramSocketFactory: (
+          dynamic host,
+          int port, {
+          bool reuseAddress = true,
+          bool reusePort = false,
+          int ttl = 1,
+        }) {
+          return RawDatagramSocket.bind(
+            host,
+            port,
+            reuseAddress: true,
+            reusePort: false, // Fix for Android: reusePort is not supported
+            ttl: ttl,
+          );
+        },
+      );
+      await _mdnsClient!.start();
 
-    // mDNS discovery can be added in Phase 3 with proper platform support
-    developer.log('Discovery started - hotspot fallback available', name: 'DiscoveryService');
-  }
+      // Query for Croenix audio service
+      await for (final PtrResourceRecord ptr in _mdnsClient!.lookup<PtrResourceRecord>(
+        ResourceRecordQuery.serverPointer('_croenix-audio._tcp.local'),
+      )) {
+        await for (final SrvResourceRecord srv in _mdnsClient!.lookup<SrvResourceRecord>(
+          ResourceRecordQuery.service(ptr.domainName),
+        )) {
+          // Query for IP address
+          await for (final IPAddressResourceRecord ip in _mdnsClient!.lookup<IPAddressResourceRecord>(
+            ResourceRecordQuery.addressIPv4(srv.target),
+          )) {
+            final device = DiscoveredDevice(
+              name: ptr.domainName,
+              hostname: srv.target,
+              ipAddress: ip.address.address,
+              port: srv.port,
+            );
 
-  void _addDevice(DiscoveredDevice device) {
-    if (!_discoveredDevices.contains(device)) {
-      _discoveredDevices.add(device);
-      _devicesController.add(_discoveredDevices);
-      developer.log('Device discovered: ${device.ip}', name: 'DiscoveryService');
+            if (!_discoveredDevices.any((d) => d.ipAddress == device.ipAddress)) {
+              _discoveredDevices.add(device);
+              _devicesController.add(List.from(_discoveredDevices));
+
+              print('[Discovery] Found device: ${device.name} at ${device.ipAddress}');
+            }
+          }
+        }
+      }
+    } catch (e) {
+      print('[Discovery] Error: $e');
     }
   }
 
-  void addManualDevice(String ip, {int? port}) {
-    _addDevice(DiscoveredDevice(
-      name: AppConstants.deviceName,
-      ip: ip,
-      port: port ?? AppConstants.defaultPort,
-      hostname: null,
-      method: DiscoveryMethod.manual,
-    ));
+  // Stop discovery
+  void stopDiscovery() {
+    print('[Discovery] Stopping discovery...');
+    _mdnsClient?.stop();
+    _mdnsClient = null;
   }
 
-  Future<void> stopDiscovery() async {
-    developer.log('Discovery stopped', name: 'DiscoveryService');
+  // Get list of discovered devices
+  List<DiscoveredDevice> get devices => List.unmodifiable(_discoveredDevices);
+
+  // Clear discovered devices
+  void clearDevices() {
+    _discoveredDevices.clear();
+    _devicesController.add([]);
   }
 
   void dispose() {

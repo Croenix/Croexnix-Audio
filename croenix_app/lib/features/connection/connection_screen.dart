@@ -1,93 +1,282 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import '../../core/theme/croenix_colors.dart';
+import '../../data/services/websocket_service.dart';
 import '../../data/services/discovery_service.dart';
-import '../../data/services/connection_service.dart';
-import '../../data/services/auth_service.dart';
-import '../../data/repositories/device_repository.dart';
-import '../../data/models/connection_state.dart' as conn;
 import '../../data/models/discovered_device.dart';
 
-// Providers
-final discoveryServiceProvider = Provider((ref) => DiscoveryService());
-
-final connectionServiceProvider = Provider((ref) {
-  return ConnectionService(
-    repository: DeviceRepository(),
-    authService: AuthService(),
-    discoveryService: ref.watch(discoveryServiceProvider),
-  );
-});
-
-final discoveredDevicesProvider = StreamProvider<List<DiscoveredDevice>>((ref) {
-  final service = ref.watch(discoveryServiceProvider);
-  return service.devicesStream;
-});
-
-final connectionStateProvider = StreamProvider<conn.ConnectionState>((ref) {
-  final service = ref.watch(connectionServiceProvider);
-  return service.stateStream;
-});
-
-class ConnectionScreen extends ConsumerStatefulWidget {
+class ConnectionScreen extends StatefulWidget {
   const ConnectionScreen({super.key});
 
   @override
-  ConsumerState<ConnectionScreen> createState() => _ConnectionScreenState();
+  State<ConnectionScreen> createState() => _ConnectionScreenState();
 }
 
-class _ConnectionScreenState extends ConsumerState<ConnectionScreen> {
+class _ConnectionScreenState extends State<ConnectionScreen> {
+  final WebSocketService _wsService = WebSocketService();
+  final DiscoveryService _discoveryService = DiscoveryService();
+  final TextEditingController _ipController = TextEditingController();
+
+  List<DiscoveredDevice> _devices = [];
+  bool _isScanning = false;
+  bool _isConnecting = false;
+  String? _errorMessage;
+
   @override
   void initState() {
     super.initState();
-    // Start discovery when screen loads
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(connectionServiceProvider).startDiscovery();
+    _ipController.text = _wsService.deviceIP ?? WebSocketService.defaultApIP;
+
+    _discoveryService.devicesStream.listen((devices) {
+      if (mounted) {
+        setState(() => _devices = devices);
+      }
     });
+
+    _startScan();
+  }
+
+  @override
+  void dispose() {
+    _discoveryService.dispose();
+    _ipController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _startScan() async {
+    setState(() {
+      _isScanning = true;
+      _errorMessage = null;
+    });
+
+    try {
+      await _discoveryService.startDiscovery();
+      await Future.delayed(const Duration(seconds: 4));
+    } catch (e) {
+      if (mounted) setState(() => _errorMessage = 'Scan error: $e');
+    } finally {
+      if (mounted) setState(() => _isScanning = false);
+    }
+  }
+
+  Future<void> _connect(String ip, {int port = 8080}) async {
+    setState(() {
+      _isConnecting = true;
+      _errorMessage = null;
+    });
+
+    final success = await _wsService.connect(ip, port: port);
+
+    if (mounted) {
+      setState(() => _isConnecting = false);
+      if (success) {
+        Navigator.pop(context);
+      } else {
+        setState(() => _errorMessage = 'Could not connect to $ip:$port. Verify ESP32 is powered on.');
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final devicesAsync = ref.watch(discoveredDevicesProvider);
-    final connectionStateAsync = ref.watch(connectionStateProvider);
-
-    // Navigate to dashboard when connected
-    connectionStateAsync.whenData((state) {
-      if (state.isConnected) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          context.go('/dashboard');
-        });
-      }
-    });
-
     return Scaffold(
+      backgroundColor: CroenixColors.darkBackground,
       appBar: AppBar(
-        title: const Text('Connect to Croenix'),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        title: const Text('Connect to Croenix', style: TextStyle(fontWeight: FontWeight.bold)),
+        actions: [
+          IconButton(
+            icon: _isScanning
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2, color: CroenixColors.primaryCyan),
+                  )
+                : const Icon(Icons.refresh_rounded, color: CroenixColors.primaryCyan),
+            onPressed: _isScanning ? null : _startScan,
+          ),
+        ],
       ),
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(24.0),
+          padding: const EdgeInsets.all(20),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Connection Status Card
-              _buildConnectionStatusCard(connectionStateAsync),
-
-              const SizedBox(height: 32),
-
-              // Device List
-              Expanded(
-                child: _buildDeviceList(devicesAsync),
+              // Manual IP Input
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: GlassEffect.standard,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Direct IP Connection',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                        color: CroenixColors.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    const Text(
+                      'Default AP mode IP is 192.168.4.1',
+                      style: TextStyle(fontSize: 12, color: CroenixColors.textSecondary),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: _ipController,
+                            style: const TextStyle(color: Colors.white, fontSize: 14),
+                            keyboardType: TextInputType.number,
+                            decoration: InputDecoration(
+                              filled: true,
+                              fillColor: const Color(0xFF1B2338),
+                              hintText: '192.168.4.1',
+                              hintStyle: const TextStyle(color: Colors.white38),
+                              prefixIcon: const Icon(Icons.lan_rounded, color: CroenixColors.primaryCyan, size: 20),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(10),
+                                borderSide: BorderSide.none,
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: CroenixColors.primaryCyan,
+                            foregroundColor: Colors.black,
+                            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          ),
+                          onPressed: _isConnecting
+                              ? null
+                              : () => _connect(_ipController.text.trim()),
+                          child: _isConnecting
+                              ? const SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black),
+                                )
+                              : const Text('Connect', style: TextStyle(fontWeight: FontWeight.bold)),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
 
-              const SizedBox(height: 16),
+              if (_errorMessage != null) ...[
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.red.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: Colors.red.withValues(alpha: 0.4)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.error_outline_rounded, color: Colors.redAccent, size: 20),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(_errorMessage!, style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
 
-              // Manual IP Button
-              OutlinedButton.icon(
-                onPressed: () => _showManualIpDialog(),
-                icon: const Icon(Icons.edit),
-                label: const Text('Enter IP Manually'),
+              const SizedBox(height: 24),
+
+              // Discovered Devices List
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'DISCOVERED DEVICES',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 0.8,
+                      color: CroenixColors.textSecondary,
+                    ),
+                  ),
+                  if (_isScanning)
+                    const Text(
+                      'Scanning...',
+                      style: TextStyle(fontSize: 12, color: CroenixColors.primaryCyan),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 12),
+
+              Expanded(
+                child: _devices.isEmpty
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              _isScanning ? Icons.radar_rounded : Icons.search_off_rounded,
+                              size: 48,
+                              color: CroenixColors.textSecondary.withValues(alpha: 0.5),
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              _isScanning ? 'Searching network for Croenix...' : 'No devices found',
+                              style: const TextStyle(color: CroenixColors.textSecondary, fontSize: 14),
+                            ),
+                            const SizedBox(height: 6),
+                            const Text(
+                              'Ensure ESP32 is powered on and connected to the same Wi-Fi.',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(color: Colors.white38, fontSize: 12),
+                            ),
+                          ],
+                        ),
+                      )
+                    : ListView.builder(
+                        itemCount: _devices.length,
+                        itemBuilder: (context, index) {
+                          final device = _devices[index];
+                          return Container(
+                            margin: const EdgeInsets.only(bottom: 10),
+                            decoration: GlassEffect.standard,
+                            child: ListTile(
+                              leading: Container(
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  color: CroenixColors.primaryCyan.withValues(alpha: 0.15),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(Icons.speaker_rounded, color: CroenixColors.primaryCyan, size: 20),
+                              ),
+                              title: Text(
+                                device.displayName.isEmpty ? 'Croenix' : device.displayName,
+                                style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+                              ),
+                              subtitle: Text(
+                                '${device.ipAddress}:${device.port}',
+                                style: const TextStyle(color: CroenixColors.textSecondary, fontSize: 12),
+                              ),
+                              trailing: ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: CroenixColors.primaryCyan,
+                                  foregroundColor: Colors.black,
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                ),
+                                onPressed: () => _connect(device.ipAddress, port: device.port),
+                                child: const Text('Connect'),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
               ),
             ],
           ),
@@ -95,238 +284,5 @@ class _ConnectionScreenState extends ConsumerState<ConnectionScreen> {
       ),
     );
   }
-
-  Widget _buildConnectionStatusCard(AsyncValue<conn.ConnectionState> stateAsync) {
-    return stateAsync.when(
-      data: (state) {
-        Color statusColor;
-        IconData statusIcon;
-        String statusText;
-
-        switch (state.status) {
-          case conn.ConnectionStatus.scanning:
-            statusColor = CroenixColors.info;
-            statusIcon = Icons.search;
-            statusText = 'Scanning for devices...';
-            break;
-          case conn.ConnectionStatus.connecting:
-            statusColor = CroenixColors.warning;
-            statusIcon = Icons.sync;
-            statusText = 'Connecting...';
-            break;
-          case conn.ConnectionStatus.authenticating:
-            statusColor = CroenixColors.warning;
-            statusIcon = Icons.lock;
-            statusText = 'Authenticating...';
-            break;
-          case conn.ConnectionStatus.connected:
-            statusColor = CroenixColors.success;
-            statusIcon = Icons.check_circle;
-            statusText = 'Connected';
-            break;
-          case conn.ConnectionStatus.authFailed:
-            statusColor = CroenixColors.error;
-            statusIcon = Icons.error;
-            statusText = state.errorMessage ?? 'Authentication failed';
-            break;
-          case conn.ConnectionStatus.error:
-            statusColor = CroenixColors.error;
-            statusIcon = Icons.error;
-            statusText = state.errorMessage ?? 'Connection error';
-            break;
-          default:
-            statusColor = CroenixColors.textSecondary;
-            statusIcon = Icons.circle_outlined;
-            statusText = 'Not connected';
-        }
-
-        return Card(
-          child: Padding(
-            padding: const EdgeInsets.all(20.0),
-            child: Row(
-              children: [
-                Icon(statusIcon, color: statusColor, size: 32),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        statusText,
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          color: statusColor,
-                        ),
-                      ),
-                      if (state.device != null) ...[
-                        const SizedBox(height: 4),
-                        Text(
-                          state.device!.ip,
-                          style: Theme.of(context).textTheme.bodySmall,
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-                if (state.isConnecting)
-                  const SizedBox(
-                    width: 24,
-                    height: 24,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  ),
-              ],
-            ),
-          ),
-        );
-      },
-      loading: () => const Card(
-        child: Padding(
-          padding: EdgeInsets.all(20.0),
-          child: Center(child: CircularProgressIndicator()),
-        ),
-      ),
-      error: (error, stack) => Card(
-        child: Padding(
-          padding: const EdgeInsets.all(20.0),
-          child: Text('Error: $error'),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDeviceList(AsyncValue<List<DiscoveredDevice>> devicesAsync) {
-    return devicesAsync.when(
-      data: (devices) {
-        if (devices.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.search,
-                  size: 64,
-                  color: CroenixColors.textTertiary,
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'Searching for Croenix devices...',
-                  style: Theme.of(context).textTheme.bodyLarge,
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Make sure your device is powered on',
-                  style: Theme.of(context).textTheme.bodySmall,
-                  textAlign: TextAlign.center,
-                ),
-              ],
-            ),
-          );
-        }
-
-        return ListView.builder(
-          itemCount: devices.length,
-          itemBuilder: (context, index) {
-            final device = devices[index];
-            return Card(
-              margin: const EdgeInsets.only(bottom: 12),
-              child: ListTile(
-                contentPadding: const EdgeInsets.all(16),
-                leading: Container(
-                  width: 56,
-                  height: 56,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: CroenixColors.primaryGradient,
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Icon(
-                    Icons.music_note,
-                    color: Colors.white,
-                  ),
-                ),
-                title: Text(
-                  device.name,
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-                subtitle: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const SizedBox(height: 4),
-                    Text(device.ip),
-                    const SizedBox(height: 2),
-                    Text(
-                      _getMethodLabel(device.method),
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: CroenixColors.primary,
-                      ),
-                    ),
-                  ],
-                ),
-                trailing: ElevatedButton(
-                  onPressed: () => _connectToDevice(device),
-                  child: const Text('Connect'),
-                ),
-              ),
-            );
-          },
-        );
-      },
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (error, stack) => Center(child: Text('Error: $error')),
-    );
-  }
-
-  String _getMethodLabel(DiscoveryMethod method) {
-    switch (method) {
-      case DiscoveryMethod.mdns:
-        return 'Found via mDNS';
-      case DiscoveryMethod.hotspot:
-        return 'Direct Hotspot';
-      case DiscoveryMethod.manual:
-        return 'Manual Entry';
-      case DiscoveryMethod.saved:
-        return 'Saved Device';
-    }
-  }
-
-  Future<void> _connectToDevice(DiscoveredDevice device) async {
-    await ref.read(connectionServiceProvider).connectToDevice(device);
-  }
-
-  void _showManualIpDialog() {
-    final controller = TextEditingController();
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Enter IP Address'),
-        content: TextField(
-          controller: controller,
-          decoration: const InputDecoration(
-            hintText: '192.168.x.x',
-            labelText: 'IP Address',
-          ),
-          keyboardType: TextInputType.number,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              final ip = controller.text.trim();
-              if (ip.isNotEmpty) {
-                ref.read(discoveryServiceProvider).addManualDevice(ip);
-                Navigator.pop(context);
-              }
-            },
-            child: const Text('Add'),
-          ),
-        ],
-      ),
-    );
-  }
 }
+

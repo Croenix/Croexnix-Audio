@@ -90,12 +90,12 @@ BEGIN
         BLOCK "040904e4"
         BEGIN
             VALUE "CompanyName", "com.croenix" "\0"
-            VALUE "FileDescription", "croenix" "\0"
+            VALUE "FileDescription", "croenix_app" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "croenix" "\0"
+            VALUE "InternalName", "croenix_app" "\0"
             VALUE "LegalCopyright", "Copyright (C) 2026 com.croenix. All rights reserved." "\0"
-            VALUE "OriginalFilename", "croenix.exe" "\0"
-            VALUE "ProductName", "croenix" "\0"
+            VALUE "OriginalFilename", "croenix_app.exe" "\0"
+            VALUE "ProductName", "croenix_app" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END
