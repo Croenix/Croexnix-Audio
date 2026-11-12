@@ -1,9 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(cd .. && find . -name \"*.dart\" -o -name \"*.cpp\" -o -name \"*.h\" | wc -l)",
-      "Bash(cd .. && find . -name \"*.md\" | head -10)",
-      "Bash(chmod +x convert_to_arduino.sh)"
-    ]
-  }
-}
