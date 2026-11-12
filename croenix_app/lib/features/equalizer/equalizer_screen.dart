@@ -95,10 +95,10 @@ class _EqualizerScreenState extends State<EqualizerScreen> {
           child: const Icon(Icons.tune_rounded, color: CroenixColors.secondaryPurple, size: 26),
         ),
         const SizedBox(width: 14),
-        Expanded(
+        const Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            children: const [
+            children: [
               Text(
                 'STUDIO EQUALIZER',
                 style: TextStyle(
@@ -338,8 +338,8 @@ class _EqualizerScreenState extends State<EqualizerScreen> {
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.white.withOpacity(0.06)),
       ),
-      child: Row(
-        children: const [
+      child: const Row(
+        children: [
           Icon(Icons.memory_rounded, color: CroenixColors.primaryCyan, size: 24),
           SizedBox(width: 12),
           Expanded(

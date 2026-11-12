@@ -5,32 +5,30 @@
 // Preferences for persistent storage
 static Preferences preferences;
 
-// Wi-Fi state
+// Wi-Fi state (Station-Only, NO SoftAP Hotspot)
 static bool wifiInitialized = false;
-static bool apModeActive = false;
 static unsigned long lastReconnectAttempt = 0;
 static const unsigned long RECONNECT_INTERVAL = 30000; // 30 seconds
+static String s_savedSSID = "";
+static String s_savedPass = "";
 
 void initWiFiManager() {
-    DEBUG_PRINTLN("[WIFI] Initializing dual-mode Wi-Fi manager...");
+    DEBUG_PRINTLN("[WIFI] Initializing Station-Only Wi-Fi (No Hotspot Mode)...");
 
-    WiFi.persistent(false); // Clean memory control
+    WiFi.persistent(false);
     WiFi.setAutoReconnect(true);
+    WiFi.mode(WIFI_STA);
 
     // Try to load saved credentials
-    String ssid, password;
-    bool hasSaved = loadWiFiCredentials(ssid, password);
+    bool hasSaved = loadWiFiCredentials(s_savedSSID, s_savedPass);
 
-    if (hasSaved && ssid.length() > 0) {
-        DEBUG_PRINTF("[WIFI] Found saved home network credentials: %s\n", ssid.c_str());
-        bool connected = connectToWiFi(ssid.c_str(), password.c_str());
-        if (!connected) {
-            DEBUG_PRINTLN("[WIFI] Could not connect to saved network. Starting secure AP mode for setup...");
-            startAccessPoint();
-        }
+    if (hasSaved && s_savedSSID.length() > 0) {
+        DEBUG_PRINTF("[WIFI] Found saved home network credentials: %s\n", s_savedSSID.c_str());
+        // Non-blocking attempt - if offline, device continues without hanging
+        connectToWiFi(s_savedSSID.c_str(), s_savedPass.c_str());
     } else {
-        DEBUG_PRINTLN("[WIFI] No saved credentials. Starting secure AP mode for initial Flutter setup...");
-        startAccessPoint();
+        DEBUG_PRINTLN("[WIFI] No saved Wi-Fi credentials. Operating in Pure Bluetooth/Offline mode.");
+        WiFi.disconnect(true);
     }
 
     wifiInitialized = true;
@@ -43,17 +41,13 @@ void updateWiFiManager() {
 
     if (xSemaphoreTake(g_stateMutex, pdMS_TO_TICKS(15)) == pdTRUE) {
         g_deviceState.wifiConnected = connected;
-        g_deviceState.apMode = apModeActive;
+        g_deviceState.apMode = false; // Hotspot is disabled
         strncpy(g_deviceState.macAddress, WiFi.macAddress().c_str(), sizeof(g_deviceState.macAddress) - 1);
 
         if (connected) {
             strncpy(g_deviceState.wifiSSID, WiFi.SSID().c_str(), MAX_SSID_LENGTH - 1);
             g_deviceState.wifiRSSI = WiFi.RSSI();
             strncpy(g_deviceState.localIP, WiFi.localIP().toString().c_str(), 15);
-        } else if (apModeActive) {
-            strncpy(g_deviceState.wifiSSID, AP_SSID, MAX_SSID_LENGTH - 1);
-            g_deviceState.wifiRSSI = 0;
-            strncpy(g_deviceState.localIP, WiFi.softAPIP().toString().c_str(), 15);
         } else {
             g_deviceState.localIP[0] = '\0';
             g_deviceState.wifiSSID[0] = '\0';
@@ -63,44 +57,42 @@ void updateWiFiManager() {
         xSemaphoreGive(g_stateMutex);
     }
 
-    // Auto-reconnect logic for STA mode
-    if (!apModeActive && !connected) {
+    // Auto-reconnect logic for saved STA network
+    if (!connected && s_savedSSID.length() > 0) {
         unsigned long now = millis();
         if (now - lastReconnectAttempt >= RECONNECT_INTERVAL) {
             lastReconnectAttempt = now;
-            DEBUG_PRINTLN("[WIFI] Connection lost, attempting reconnection...");
-            WiFi.reconnect();
+            DEBUG_PRINTLN("[WIFI] Connection lost, retrying home network...");
+            WiFi.begin(s_savedSSID.c_str(), s_savedPass.c_str());
         }
     }
 }
 
 bool connectToWiFi(const char* ssid, const char* password) {
-    DEBUG_PRINTF("[WIFI] Connecting to home network: %s\n", ssid);
+    if (!ssid || strlen(ssid) == 0) return false;
 
-    // Stop AP mode to lock out unauthorized devices
-    if (apModeActive) {
-        stopAccessPoint();
-    }
+    DEBUG_PRINTF("[WIFI] Connecting to home Wi-Fi: %s\n", ssid);
 
     WiFi.disconnect(true);
-    delay(100);
+    delay(50);
     WiFi.mode(WIFI_STA);
     WiFi.begin(ssid, password);
 
-    // Wait for connection with non-blocking delays (max 12 seconds)
+    // Wait up to 8 seconds for connection
     int attempts = 0;
-    while (WiFi.status() != WL_CONNECTED && attempts < 24) {
+    while (WiFi.status() != WL_CONNECTED && attempts < 16) {
         delay(500);
         DEBUG_PRINT(".");
         attempts++;
     }
 
     if (WiFi.status() == WL_CONNECTED) {
-        DEBUG_PRINTLN("\n[WIFI] Connected to home network successfully!");
-        DEBUG_PRINTF("[WIFI] IP Address: %s\n", WiFi.localIP().toString().c_str());
-        DEBUG_PRINTF("[WIFI] RSSI: %d dBm\n", WiFi.RSSI());
+        DEBUG_PRINTLN("\n[WIFI] ✓ Connected to home Wi-Fi network!");
+        DEBUG_PRINTF("[WIFI] Local IP: %s\n", WiFi.localIP().toString().c_str());
+        DEBUG_PRINTF("[WIFI] Signal: %d dBm\n", WiFi.RSSI());
 
-        apModeActive = false;
+        s_savedSSID = ssid;
+        s_savedPass = password ? password : "";
 
         // Start mDNS responder
         if (MDNS.begin(MDNS_HOSTNAME)) {
@@ -109,18 +101,16 @@ bool connectToWiFi(const char* ssid, const char* password) {
         }
 
         // Save valid credentials to NVS
-        saveWiFiCredentials(ssid, password);
+        saveWiFiCredentials(ssid, password ? password : "");
         return true;
     } else {
-        DEBUG_PRINTLN("\n[WIFI] Failed to connect to home network!");
-        // Re-open secure AP mode so device remains accessible for configuration
-        startAccessPoint();
+        DEBUG_PRINTLN("\n[WIFI] ✗ Wi-Fi connection timed out. Remaining in Bluetooth mode.");
         return false;
     }
 }
 
 void disconnectWiFi() {
-    DEBUG_PRINTLN("[WIFI] Disconnecting...");
+    DEBUG_PRINTLN("[WIFI] Disconnecting Wi-Fi...");
     WiFi.disconnect(true);
 }
 
@@ -129,101 +119,60 @@ bool isWiFiConnected() {
 }
 
 void startAccessPoint() {
-    DEBUG_PRINTLN("[WIFI] Starting Secure SoftAP Mode...");
-
-    // Disconnect STA
-    WiFi.disconnect(true);
-    WiFi.mode(WIFI_AP);
-
-    // Secure WPA2 hotspot with password
-    bool success = WiFi.softAP(AP_SSID, AP_PASSWORD, AP_CHANNEL, 0, AP_MAX_CONNECTIONS);
-
-    if (success) {
-        IPAddress IP = WiFi.softAPIP();
-        DEBUG_PRINTF("[WIFI] Secure AP active!\n");
-        DEBUG_PRINTF("[WIFI] SSID: %s (WPA2)\n", AP_SSID);
-        DEBUG_PRINTF("[WIFI] IP: %s\n", IP.toString().c_str());
-
-        apModeActive = true;
-
-        if (MDNS.begin(MDNS_HOSTNAME)) {
-            MDNS.addService(MDNS_SERVICE_NAME, MDNS_SERVICE_PROTOCOL, MDNS_SERVICE_PORT);
-        }
-    } else {
-        DEBUG_PRINTLN("[WIFI] Failed to start SoftAP!");
-    }
+    // Disabled by design: User requested no hotspot mode to prevent phone data disconnection
+    DEBUG_PRINTLN("[WIFI] SoftAP/Hotspot is disabled. Device uses Bluetooth Low Energy for configuration.");
 }
 
 void stopAccessPoint() {
-    if (apModeActive) {
-        DEBUG_PRINTLN("[WIFI] Shutting down SoftAP to secure device from unauthorized access...");
-        WiFi.softAPdisconnect(true);
-        apModeActive = false;
-    }
+    WiFi.softAPdisconnect(true);
 }
 
 bool isAPMode() {
-    return apModeActive;
-}
-
-int scanNetworks() {
-    DEBUG_PRINTLN("[WIFI] Scanning for available networks...");
-    int n = WiFi.scanNetworks();
-    DEBUG_PRINTF("[WIFI] Found %d networks\n", n);
-    return n;
-}
-
-String getScannedNetwork(int index) {
-    return WiFi.SSID(index);
-}
-
-int8_t getScannedRSSI(int index) {
-    return WiFi.RSSI(index);
+    return false; // SoftAP is never active
 }
 
 String getLocalIP() {
-    if (apModeActive) {
-        return WiFi.softAPIP().toString();
-    } else {
-        return WiFi.localIP().toString();
-    }
+    return isWiFiConnected() ? WiFi.localIP().toString() : "";
 }
 
 String getSSID() {
-    return WiFi.SSID();
+    return isWiFiConnected() ? WiFi.SSID() : "";
 }
 
-int8_t getRSSI() {
-    return WiFi.RSSI();
+int getRSSI() {
+    return isWiFiConnected() ? WiFi.RSSI() : 0;
 }
 
 String getMACAddress() {
     return WiFi.macAddress();
 }
 
-void saveWiFiCredentials(const char* ssid, const char* password) {
-    preferences.begin(NVS_NAMESPACE, false);
-    preferences.putString(NVS_WIFI_SSID, ssid);
-    preferences.putString(NVS_WIFI_PASS, password);
+bool saveWiFiCredentials(const char* ssid, const char* password) {
+    if (!ssid || strlen(ssid) == 0) return false;
+
+    preferences.begin("croenix_wifi", false);
+    preferences.putString("ssid", ssid);
+    preferences.putString("password", password ? password : "");
     preferences.end();
 
-    DEBUG_PRINTLN("[WIFI] Credentials safely persisted in NVS");
+    DEBUG_PRINTLN("[WIFI] Credentials safely saved to NVS");
+    return true;
 }
 
 bool loadWiFiCredentials(String& ssid, String& password) {
-    preferences.begin(NVS_NAMESPACE, true);
-    ssid = preferences.getString(NVS_WIFI_SSID, "");
-    password = preferences.getString(NVS_WIFI_PASS, "");
+    preferences.begin("croenix_wifi", true);
+    ssid = preferences.getString("ssid", "");
+    password = preferences.getString("password", "");
     preferences.end();
 
     return (ssid.length() > 0);
 }
 
 void clearWiFiCredentials() {
-    preferences.begin(NVS_NAMESPACE, false);
-    preferences.remove(NVS_WIFI_SSID);
-    preferences.remove(NVS_WIFI_PASS);
+    preferences.begin("croenix_wifi", false);
+    preferences.clear();
     preferences.end();
-
+    s_savedSSID = "";
+    s_savedPass = "";
     DEBUG_PRINTLN("[WIFI] Credentials cleared from NVS");
 }

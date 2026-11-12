@@ -42,7 +42,6 @@ class _FMRadioScreenState extends State<FMRadioScreen> {
           initialData: _ws.currentState,
           builder: (context, snapshot) {
             final state = snapshot.data ?? _ws.currentState;
-            final isFMSource = state.currentSource == AudioSource.fmRadio;
 
             return SingleChildScrollView(
               physics: const BouncingScrollPhysics(),
@@ -188,13 +187,13 @@ class _FMRadioScreenState extends State<FMRadioScreen> {
           ),
           const SizedBox(height: 20),
           SliderTheme(
-            data: SliderThemeData(
+            data: const SliderThemeData(
               activeTrackColor: CroenixColors.sourceFM,
               inactiveTrackColor: Colors.white12,
               thumbColor: CroenixColors.sourceFM,
               trackHeight: 6,
-              thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 10),
-              overlayShape: const RoundSliderOverlayShape(overlayRadius: 20),
+              thumbShape: RoundSliderThumbShape(enabledThumbRadius: 10),
+              overlayShape: RoundSliderOverlayShape(overlayRadius: 20),
             ),
             child: Slider(
               value: freq,
@@ -207,11 +206,11 @@ class _FMRadioScreenState extends State<FMRadioScreen> {
               },
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8),
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 8),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: const [
+              children: [
                 Text('87.5', style: TextStyle(color: Colors.white38, fontSize: 11)),
                 Text('95.0', style: TextStyle(color: Colors.white38, fontSize: 11)),
                 Text('100.0', style: TextStyle(color: Colors.white38, fontSize: 11)),
@@ -396,14 +395,14 @@ class _FMRadioScreenState extends State<FMRadioScreen> {
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.white.withOpacity(0.06)),
       ),
-      child: Row(
+      child: const Row(
         children: [
-          const Icon(Icons.developer_board_rounded, color: Colors.white38, size: 24),
-          const SizedBox(width: 12),
+          Icon(Icons.developer_board_rounded, color: Colors.white38, size: 24),
+          SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: const [
+              children: [
                 Text(
                   'Si4703 Tuner Wiring',
                   style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold),

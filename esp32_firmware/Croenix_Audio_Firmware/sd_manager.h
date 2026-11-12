@@ -11,6 +11,7 @@
 bool initSDManager();
 bool mountSDCard();
 bool checkSDIntegrity();
+void updateSDManager();
 
 // SD Card Status & Capacity
 bool isSDCardMounted();

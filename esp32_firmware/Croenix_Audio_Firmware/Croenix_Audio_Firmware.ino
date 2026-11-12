@@ -14,6 +14,7 @@
 #include "fm_radio.h"
 #include "sd_manager.h"
 #include "encoder_manager.h"
+#include "ble_manager.h"
 
 // -------------------------------------------------------------------------
 // FreeRTOS Task Handles (Optimized Multi-Core Architecture)
@@ -65,18 +66,23 @@ void networkTask(void* parameter) {
     DEBUG_PRINTF("[TASK:NETWORK] Priority: %d, Stack: %d bytes\n",
                  NETWORK_TASK_PRIORITY, NETWORK_STACK_SIZE);
 
-    // Initialize network components
-    vTaskDelay(pdMS_TO_TICKS(200));
-
-    initWiFiManager();
+    // Initialize BLE GATT Server first (zero hotspot, low power)
     vTaskDelay(pdMS_TO_TICKS(100));
+    initBLEManager();
+
+    // Initialize Station-only Wi-Fi (connects only if configured, no hotspot)
+    initWiFiManager();
+    vTaskDelay(pdMS_TO_TICKS(50));
 
     initWebSocketServer();
 
-    DEBUG_PRINTLN("[TASK:NETWORK] Network stack ready");
+    DEBUG_PRINTLN("[TASK:NETWORK] BLE GATT Server & Network stack ready");
 
     while (true) {
-        // Update Wi-Fi state machine
+        // Update BLE telemetry & notifications
+        updateBLEManager();
+
+        // Update Wi-Fi state machine (STA only)
         updateWiFiManager();
 
         // Handle WebSocket events and client messages
@@ -132,6 +138,9 @@ void controlTask(void* parameter) {
         // Handle rotary encoder events
         updateEncoderManager();
 
+        // Background auto-detection of SD card insertion
+        updateSDManager();
+
         // Update system state (FM tune window expiration, NVS commits, etc.)
         checkFMTuneExpiration();
 
@@ -176,15 +185,15 @@ void setup() {
     DEBUG_PRINTLN("[INIT] Initializing device state...");
     initDeviceState();
 
-    // Initialize SD card (non-blocking, will retry if failed)
-    DEBUG_PRINTLN("[INIT] Initializing SD card manager...");
-    if (!initSDManager()) {
-        DEBUG_PRINTLN("[INIT] ⚠️  SD card mount failed - will retry in background");
-    }
-
     // Initialize display (ST7735 TFT) - Splash screen is displayed here
     DEBUG_PRINTLN("[INIT] Initializing display manager...");
     initDisplayManager();
+
+    // Initialize SD card (with proper SPI bus isolation and pullup)
+    DEBUG_PRINTLN("[INIT] Initializing SD card manager...");
+    if (!initSDManager()) {
+        DEBUG_PRINTLN("[INIT] ⚠️  SD card not detected at boot - auto-detection active");
+    }
 
     // Initialize encoder
     DEBUG_PRINTLN("[INIT] Initializing encoder...");

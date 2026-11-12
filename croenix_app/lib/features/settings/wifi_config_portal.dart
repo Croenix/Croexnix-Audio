@@ -68,6 +68,7 @@ class _WiFiConfigPortalState extends State<WiFiConfigPortal>
         // Strip extra quotes if present (iOS/Android formatting)
         wifiName = wifiName.replaceAll('"', '').trim();
         if (wifiName.isNotEmpty && wifiName != '<unknown ssid>') {
+          if (!mounted) return;
           setState(() {
             _ssidController.text = wifiName!;
             _statusMessage = 'Auto-detected phone Wi-Fi: $wifiName';

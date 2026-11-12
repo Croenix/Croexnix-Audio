@@ -6,6 +6,7 @@ import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:web_socket_channel/status.dart' as ws_status;
 import '../models/device_state.dart';
 import 'discovery_service.dart';
+import 'ble_service.dart';
 
 enum ConnectionStatus {
   disconnected,
@@ -82,8 +83,11 @@ class WebSocketService {
     }
   }
 
-  // Auto-connect on startup: probes saved IP, ESP32 AP (192.168.4.1), and mDNS safely
+  // Auto-connect on startup: probes Bluetooth BLE first (zero hotspot), then LAN Wi-Fi
   Future<bool> autoConnect() async {
+    // 1. Initiate low-power BLE nearby discovery immediately
+    BleService().startAutoScanAndConnect();
+
     if (isConnected) return true;
 
     try {
@@ -91,10 +95,9 @@ class WebSocketService {
       final lastIP = prefs.getString(_prefLastIPKey);
 
       final candidateIPs = <String>[];
-      if (lastIP != null && lastIP.isNotEmpty) {
+      if (lastIP != null && lastIP.isNotEmpty && lastIP != defaultApIP) {
         candidateIPs.add(lastIP);
       }
-      if (!candidateIPs.contains(defaultApIP)) candidateIPs.add(defaultApIP);
 
       print('[WebSocket] Probing candidates: $candidateIPs');
       for (final ip in candidateIPs) {
@@ -231,24 +234,25 @@ class WebSocketService {
     });
   }
 
-  // Send command to ESP32
+  // Send command to ESP32 (dual-routed via Bluetooth BLE and WebSocket)
   void sendCommand(String command, [Map<String, dynamic>? params]) {
-    if (!isConnected || _channel == null) {
-      print('[WebSocket] Cannot send command "$command": not connected');
-      return;
-    }
+    final payload = {
+      'command': command,
+      if (params != null) ...params,
+    };
+    final jsonString = jsonEncode(payload);
 
-    try {
-      final payload = {
-        'command': command,
-        if (params != null) ...params,
-      };
+    // 1. Dispatch over Bluetooth BLE if connected
+    BleService().sendCommand(jsonString);
 
-      final jsonString = jsonEncode(payload);
-      _channel!.sink.add(jsonString);
-      print('[WebSocket] Sent: $command');
-    } catch (e) {
-      print('[WebSocket] Error sending command: $e');
+    // 2. Dispatch over local Wi-Fi WebSocket if connected
+    if (isConnected && _channel != null) {
+      try {
+        _channel!.sink.add(jsonString);
+        print('[WebSocket] Sent: $command');
+      } catch (e) {
+        print('[WebSocket] Error sending command: $e');
+      }
     }
   }
 
@@ -263,6 +267,41 @@ class WebSocketService {
   void stop() => sendCommand('stop');
   void nextTrack() => sendCommand('next_track');
   void previousTrack() => sendCommand('prev_track');
+
+  void togglePlayPause() {
+    if (_currentState.isPlaying) {
+      pause();
+    } else {
+      play();
+    }
+  }
+
+  void stepVolume(int delta) {
+    int newVol = (_currentState.volume + delta).clamp(0, 100);
+    setVolume(newVol);
+  }
+
+  int _preMuteVolume = 50;
+  void toggleMute() {
+    if (_currentState.volume > 0) {
+      _preMuteVolume = _currentState.volume;
+      setVolume(0);
+    } else {
+      setVolume(_preMuteVolume > 0 ? _preMuteVolume : 50);
+    }
+  }
+
+  void setTftScreen(int screenIndex) {
+    sendCommand('set_screen', {'value': screenIndex});
+  }
+
+  void sendEncoderStep(int direction) {
+    sendCommand('encoder_step', {'dir': direction});
+  }
+
+  void sendEncoderClick() {
+    sendCommand('encoder_click');
+  }
 
   void setVolume(int volume) {
     // Optimistic local state update for zero UI latency

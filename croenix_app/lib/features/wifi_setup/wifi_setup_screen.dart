@@ -73,6 +73,7 @@ class _WiFiSetupScreenState extends State<WiFiSetupScreen> {
         _statusMessage = 'Connected successfully!';
         // Navigate to next step
         Future.delayed(const Duration(seconds: 1), () {
+          if (!mounted) return;
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(
@@ -323,6 +324,7 @@ class _WiFiConfigurationStepState extends State<_WiFiConfigurationStep> {
 
     // TODO: Handle WiFi configuration result
     Future.delayed(const Duration(seconds: 3), () {
+      if (!mounted) return;
       setState(() => _isConnecting = false);
       Navigator.pop(context);
     });

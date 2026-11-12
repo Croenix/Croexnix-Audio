@@ -7,6 +7,7 @@ import '../sd_card/sd_card_screen.dart';
 import '../fm_radio/fm_radio_screen.dart';
 import '../equalizer/equalizer_screen.dart';
 import '../settings/settings_screen.dart';
+import '../remote/virtual_remote_screen.dart';
 import 'widgets/connection_status_card.dart';
 import 'widgets/quick_controls_panel.dart';
 import 'widgets/now_playing_card.dart';
@@ -33,7 +34,9 @@ class _HomeScreenState extends State<HomeScreen> {
       onNavigate: (idx) => setState(() => _selectedIndex = idx),
       onOpenEqualizer: () => _openScreen(const EqualizerScreen()),
       onOpenSettings: () => _openScreen(const SettingsScreen()),
+      onOpenRemote: () => setState(() => _selectedIndex = 1),
     ),
+    const VirtualRemoteScreen(),
     const PlayerScreen(),
     const SDCardScreen(),
     const SoundCloudScreen(),
@@ -60,7 +63,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildGlassBottomNav() {
     return Container(
-      margin: const EdgeInsets.fromLTRB(12, 0, 12, 16),
+      margin: const EdgeInsets.fromLTRB(10, 0, 10, 14),
       decoration: GlassEffect.elevated,
       child: ClipRRect(
         borderRadius: BorderRadius.circular(22),
@@ -72,27 +75,31 @@ class _HomeScreenState extends State<HomeScreen> {
           type: BottomNavigationBarType.fixed,
           selectedItemColor: CroenixColors.primaryCyan,
           unselectedItemColor: Colors.white54,
-          selectedFontSize: 11,
-          unselectedFontSize: 10,
+          selectedFontSize: 10,
+          unselectedFontSize: 9,
           items: const [
             BottomNavigationBarItem(
-              icon: Icon(Icons.dashboard_rounded, size: 22),
+              icon: Icon(Icons.dashboard_rounded, size: 20),
               label: 'Home',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.music_note_rounded, size: 22),
+              icon: Icon(Icons.settings_remote_rounded, size: 20),
+              label: 'Remote',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.music_note_rounded, size: 20),
               label: 'Player',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.sd_storage_rounded, size: 22),
+              icon: Icon(Icons.sd_storage_rounded, size: 20),
               label: 'SD Card',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.cloud_rounded, size: 22),
+              icon: Icon(Icons.cloud_rounded, size: 20),
               label: 'SoundCloud',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.radio_rounded, size: 22),
+              icon: Icon(Icons.radio_rounded, size: 20),
               label: 'FM Radio',
             ),
           ],
@@ -106,11 +113,13 @@ class _HomeTab extends StatelessWidget {
   final ValueChanged<int> onNavigate;
   final VoidCallback onOpenEqualizer;
   final VoidCallback onOpenSettings;
+  final VoidCallback onOpenRemote;
 
   const _HomeTab({
     required this.onNavigate,
     required this.onOpenEqualizer,
     required this.onOpenSettings,
+    required this.onOpenRemote,
   });
 
   @override
@@ -137,6 +146,12 @@ class _HomeTab extends StatelessWidget {
               pinned: true,
               backgroundColor: Colors.transparent,
               actions: [
+                IconButton(
+                  icon: const Icon(Icons.settings_remote_rounded,
+                      color: CroenixColors.primaryCyan),
+                  tooltip: 'Virtual Remote',
+                  onPressed: onOpenRemote,
+                ),
                 IconButton(
                   icon: const Icon(Icons.tune_rounded, color: CroenixColors.secondaryPurple),
                   tooltip: 'Equalizer',
@@ -174,16 +189,111 @@ class _HomeTab extends StatelessWidget {
                 delegate: SliverChildListDelegate([
                   const SizedBox(height: 4),
                   const ConnectionStatusCard(),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 14),
                   const NowPlayingCard(),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 14),
+                  _buildVirtualRemoteCard(context),
+                  const SizedBox(height: 14),
                   _buildSourceShortcuts(context),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 14),
                   const QuickControlsPanel(),
                   const SizedBox(height: 100), // Bottom nav clearance
                 ]),
               ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildVirtualRemoteCard(BuildContext context) {
+    return GestureDetector(
+      onTap: onOpenRemote,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: const Color(0xFF111728),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+              color: CroenixColors.primaryCyan.withOpacity(0.4), width: 1.5),
+          boxShadow: [
+            BoxShadow(
+              color: CroenixColors.primaryCyan.withOpacity(0.08),
+              blurRadius: 16,
+              spreadRadius: 1,
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 50,
+              height: 50,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: const LinearGradient(
+                  colors: [
+                    CroenixColors.primaryCyan,
+                    CroenixColors.secondaryPurple
+                  ],
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: CroenixColors.primaryCyan.withOpacity(0.35),
+                    blurRadius: 12,
+                  ),
+                ],
+              ),
+              child: const Icon(Icons.settings_remote_rounded,
+                  color: Colors.white, size: 26),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Text(
+                        'VIRTUAL REMOTE',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                          letterSpacing: 1.1,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: CroenixColors.primaryCyan.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: const Text(
+                          'HARDWARE',
+                          style: TextStyle(
+                              color: CroenixColors.primaryCyan,
+                              fontSize: 8,
+                              fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  const Text(
+                    'Rotary Jog Wheel • Screen Switcher • Master Volume',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(color: Colors.white54, fontSize: 11),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.arrow_forward_ios_rounded,
+                color: CroenixColors.primaryCyan, size: 16),
           ],
         ),
       ),
@@ -198,7 +308,7 @@ class _HomeTab extends StatelessWidget {
           subtitle: 'MP3/FLAC',
           icon: Icons.sd_storage_rounded,
           color: CroenixColors.sourceSDCard,
-          onTap: () => onNavigate(2),
+          onTap: () => onNavigate(3),
         ),
         const SizedBox(width: 10),
         _buildNavCard(
@@ -206,7 +316,7 @@ class _HomeTab extends StatelessWidget {
           subtitle: 'Web Playlists',
           icon: Icons.cloud_rounded,
           color: CroenixColors.soundCloudOrange,
-          onTap: () => onNavigate(3),
+          onTap: () => onNavigate(4),
         ),
         const SizedBox(width: 10),
         _buildNavCard(
@@ -214,7 +324,7 @@ class _HomeTab extends StatelessWidget {
           subtitle: 'Si4703 Tuner',
           icon: Icons.radio_rounded,
           color: CroenixColors.sourceFM,
-          onTap: () => onNavigate(4),
+          onTap: () => onNavigate(5),
         ),
       ],
     );

@@ -30,15 +30,14 @@ static bool attemptSDMount(uint32_t speed);
 
 bool mountSDCard() {
     DEBUG_SD_PRINTLN("[SD] ╔════════════════════════════════════════════════════╗");
-    DEBUG_SD_PRINTLN("[SD] ║  SD CARD MOUNT - OPTIMIZED v3.0                  ║");
+    DEBUG_SD_PRINTLN("[SD] ║  SD CARD MOUNT - HIGH RELIABILITY v3.1           ║");
     DEBUG_SD_PRINTLN("[SD] ╚════════════════════════════════════════════════════╝");
-    DEBUG_SD_PRINTLN("[SD] Module: https://robu.in/product/micro-sd-card-module/");
 
-    // Clean shutdown of any existing session
+    // 1. Power stabilization & clean shutdown of any prior session
     SD.end();
     delay(100);
 
-    // Configure pins with proper pull-ups
+    // 2. Isolate SPI lines: Disengage both TFT and SD chip selects
     pinMode(TFT_CS, OUTPUT);
     digitalWrite(TFT_CS, HIGH);
 
@@ -47,45 +46,44 @@ bool mountSDCard() {
 
     pinMode(SD_MOSI, OUTPUT);
     pinMode(SD_SCK, OUTPUT);
-    pinMode(SD_MISO, INPUT_PULLUP);  // Critical for module compatibility
+    pinMode(SD_MISO, INPUT_PULLUP);  // Critical internal pullup for SD MISO line
 
     delay(50);
 
-    // Initialize SPI bus
+    // 3. Initialize SPI bus cleanly
+    SPI.end();
+    delay(20);
     SPI.begin(SD_SCK, SD_MISO, SD_MOSI, -1);
-    delay(10);
+    SPI.setFrequency(400000); // 400 kHz standard clock for SD SPI mode entry
 
-    // Send power-up initialization clocks (SD spec requirement)
-    DEBUG_SD_PRINTLN("[SD] Sending power-up sequence...");
+    // 4. Send 20 dummy bytes (160 clock cycles) with CS HIGH to place SD in SPI mode
+    digitalWrite(TFT_CS, HIGH);
     digitalWrite(SD_CS, HIGH);
-    for (int i = 0; i < 10; i++) {
+    for (int i = 0; i < 20; i++) {
         SPI.transfer(0xFF);
     }
-    delay(50);
+    delay(30);
 
-    // Progressive speed attempts (start slow, increase if successful)
+    // 5. Progressive speed attempts (start at 400kHz, then 1MHz, 4MHz, 8MHz)
     bool mounted = false;
     const uint32_t speeds[] = {
-        SD_SPI_SPEED_INIT,    // 400 kHz - SD spec standard
+        400000,               // 400 kHz - ultra safe
         SD_SPI_SPEED_SLOW,    // 1 MHz
         2000000,              // 2 MHz
         SD_SPI_SPEED_NORMAL   // 4 MHz
     };
 
     for (int i = 0; i < 4 && !mounted; i++) {
-        DEBUG_SD_PRINTF("[SD] Attempt %d: %d Hz...", i + 1, speeds[i]);
+        digitalWrite(TFT_CS, HIGH);
+        digitalWrite(SD_CS, HIGH);
+        delay(20);
 
-        if (i > 0) {
-            SD.end();
-            delay(100);
-            digitalWrite(SD_CS, HIGH);
-        }
-
+        DEBUG_SD_PRINTF("[SD] Probing bus at %u Hz...", speeds[i]);
         SPI.setFrequency(speeds[i]);
         mounted = SD.begin(SD_CS, SPI, speeds[i]);
 
         if (mounted) {
-            DEBUG_SD_PRINTLN(" ✓");
+            DEBUG_SD_PRINTLN(" ✓ DETECTED!");
             break;
         } else {
             DEBUG_SD_PRINTLN(" ✗");
@@ -113,14 +111,7 @@ bool mountSDCard() {
             DEBUG_SD_PRINTLN("[SD] ╔════════════════════════════════════════════════╗");
             DEBUG_SD_PRINTLN("[SD] ║  ✗ NO CARD DETECTED                           ║");
             DEBUG_SD_PRINTLN("[SD] ╚════════════════════════════════════════════════╝");
-            DEBUG_SD_PRINTLN("[SD] TROUBLESHOOTING:");
-            DEBUG_SD_PRINTLN("[SD]   ✓ VCC → 3.3V or 5V (check module specs)");
-            DEBUG_SD_PRINTLN("[SD]   ✓ GND connected");
-            DEBUG_SD_PRINTLN("[SD]   ✓ CS  → GPIO 15");
-            DEBUG_SD_PRINTLN("[SD]   ✓ MISO → GPIO 19 (with pull-up)");
-            DEBUG_SD_PRINTLN("[SD]   ✓ MOSI → GPIO 23");
-            DEBUG_SD_PRINTLN("[SD]   ✓ SCK  → GPIO 18");
-            DEBUG_SD_PRINTLN("[SD]   ✓ Card fully inserted in socket");
+            DEBUG_SD_PRINTLN("[SD] Check: CS=15, MISO=19 (pullup), MOSI=23, SCK=18");
         }
 
         if (xSemaphoreTake(g_stateMutex, pdMS_TO_TICKS(30)) == pdTRUE) {
@@ -169,7 +160,21 @@ bool mountSDCard() {
 }
 
 bool initSDManager() {
+    delay(200); // Power stabilization delay on cold boot
     return mountSDCard();
+}
+
+static unsigned long s_lastSDProbeTime = 0;
+
+void updateSDManager() {
+    if (!s_sdMounted) {
+        unsigned long now = millis();
+        // Periodically retry mounting if card is inserted later
+        if (now - s_lastSDProbeTime >= 3000) {
+            s_lastSDProbeTime = now;
+            mountSDCard();
+        }
+    }
 }
 
 // -------------------------------------------------------------------------
