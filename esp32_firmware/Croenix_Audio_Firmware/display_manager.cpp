@@ -267,9 +267,12 @@ void showHardwareDiagnosticsScreen() {
                 tft.drawString(volDbg, 10, 78);
 
                 uint16_t dacCol = g_deviceState.isPlaying ? COLOR_NEON_GREEN : COLOR_PRIMARY_CYAN;
-                tft.fillRoundRect(10, 89, 82, 13, 3, dacCol);
+                tft.fillRoundRect(10, 89, 70, 13, 3, dacCol);
                 tft.setTextColor(COLOR_DEEP_BG, dacCol);
                 tft.drawString(g_deviceState.isPlaying ? "STREAMING" : "I2S READY", 14, 91);
+
+                tft.setTextColor(COLOR_AMBER, COLOR_DEEP_BG);
+                tft.drawString("Click: Test Chime", 84, 91);
                 break;
             }
 

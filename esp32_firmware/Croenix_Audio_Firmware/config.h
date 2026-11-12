@@ -79,7 +79,7 @@
 #define DISPLAY_TASK_PRIORITY     1  // Lowest - can tolerate delays
 
 // Stack Sizes (Optimized - reduced from original)
-#define AUDIO_STACK_SIZE          6144  // Reduced but sufficient
+#define CRX_AUDIO_TASK_STACK      8192  // Stack for Core 1 Audio decoding task
 #define CONTROL_STACK_SIZE        3072  // Reduced
 #define DISPLAY_STACK_SIZE        3072  // Reduced
 #define NETWORK_STACK_SIZE        4096  // Adequate for WebSocket

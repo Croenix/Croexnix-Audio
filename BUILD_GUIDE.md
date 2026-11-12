@@ -214,7 +214,7 @@ The application features a dedicated SoundCloud streaming suite:
 ### Display Stuck on "CROENIX AUDIOS" Splash Screen
 * **Cause:** The FM radio module probe hung on I²C clock-stretching.
 * **Solution:** Firmware v3.0 includes `Wire.setTimeOut(20)` non-blocking bus probing. If no Si4703 is detected, it cleanly disables FM radio and boots immediately to `UI_SCREEN_HOME`.
-
+ESP32 GPIO 26 $\rightarrow$ DAC BCKESP32 GPIO 25 $\rightarrow$ DAC DINESP32 GPIO 22 $\rightarrow$ DAC LCK
 ### PCM5102A DAC Has Only Red LED / No Sound
 * **Check Jumpers:**
   1. `SCK / SCL` must be tied directly to **GND** (enables internal PLL from BCK).

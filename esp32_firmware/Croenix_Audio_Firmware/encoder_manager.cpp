@@ -158,9 +158,16 @@ void updateEncoderManager() {
         if (!s_longPress10sFired) {
             uint32_t duration = s_swReleaseTime - s_swPressStartTime;
             if (duration >= ENCODER_SHORT_PRESS_MIN && duration <= ENCODER_SHORT_PRESS_MAX) {
-                // If in Hardware Diagnostics screen: Click exits to Home Screen
+                // If in Hardware Diagnostics screen:
+                // Module 0 (DAC): Click plays audio verification chime!
+                // Other modules: Click exits to Home Screen
                 if (g_deviceState.activeScreen == UI_SCREEN_HARDWARE_DIAGNOSTICS) {
-                    toggleHardwareDiagnostics();
+                    if (g_deviceState.selectedDiagModule == 0) {
+                        DEBUG_PRINTLN("[DIAG] Triggering DAC audio test chime...");
+                        playBootChime();
+                    } else {
+                        toggleHardwareDiagnostics();
+                    }
                 } else {
                     // Home Screen Behavior:
                     // If in FM mode and Tune window is NOT active -> Activate 5-second Tune window!

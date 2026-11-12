@@ -2,6 +2,12 @@
 #include "Audio.h"
 #include "device_state.h"
 #include "sd_manager.h"
+#include <SPIFFS.h>
+#include <WiFi.h>
+#include <math.h>
+
+// Forward declaration
+void createBootToneFile();
 
 // =========================================================================
 // OPTIMIZED AUDIO MANAGER v3.0
@@ -240,6 +246,13 @@ bool switchAudioSource(AudioSource source) {
 
         case SOURCE_WEB_STREAM:
             DEBUG_PRINTLN("[AUDIO] Web stream source activated");
+            if (WiFi.status() == WL_CONNECTED) {
+                DEBUG_PRINTLN("[AUDIO] Connected to Wi-Fi: Auto-streaming SoundCloud channel...");
+                connectToWebStream("http://stream.zeno.fm/f3wvbbqmdg8uv");
+            } else {
+                DEBUG_PRINTLN("[AUDIO] Wi-Fi offline - playing verification chime to test DAC hardware...");
+                playBootChime();
+            }
             break;
 
         default:
@@ -499,4 +512,71 @@ void audio_eof_stream(const char *info) {
     DEBUG_AUDIO_PRINTLN("[AUDIO] Stream ended");
     setPlaying(false);
     audioPlaying = false;
+}
+
+// -------------------------------------------------------------------------
+// HARDWARE AUDIO VERIFICATION CHIME (Runs on SPIFFS without internet/SD)
+// -------------------------------------------------------------------------
+
+void createBootToneFile() {
+    if (!SPIFFS.begin(true)) {
+        DEBUG_PRINTLN("[AUDIO] SPIFFS mount failed for boot tone");
+        return;
+    }
+    if (SPIFFS.exists("/boot_tone.wav")) {
+        return;
+    }
+
+    File f = SPIFFS.open("/boot_tone.wav", "w");
+    if (!f) return;
+
+    // Standard 44-byte WAV header for 44100 Hz, 16-bit, Stereo, 1.2s duration
+    uint32_t sampleRate = 44100;
+    uint16_t numChannels = 2;
+    uint16_t bitsPerSample = 16;
+    uint32_t numSamples = (uint32_t)(sampleRate * 1.2f);
+    uint32_t subchunk2Size = numSamples * numChannels * (bitsPerSample / 8);
+    uint32_t chunkSize = 36 + subchunk2Size;
+
+    f.write((const uint8_t*)"RIFF", 4);
+    f.write((const uint8_t*)&chunkSize, 4);
+    f.write((const uint8_t*)"WAVEfmt ", 8);
+    uint32_t subchunk1Size = 16;
+    uint16_t audioFormat = 1; // PCM
+    f.write((const uint8_t*)&subchunk1Size, 4);
+    f.write((const uint8_t*)&audioFormat, 2);
+    f.write((const uint8_t*)&numChannels, 2);
+    f.write((const uint8_t*)&sampleRate, 4);
+    uint32_t byteRate = sampleRate * numChannels * (bitsPerSample / 8);
+    f.write((const uint8_t*)&byteRate, 4);
+    uint16_t blockAlign = numChannels * (bitsPerSample / 8);
+    f.write((const uint8_t*)&blockAlign, 2);
+    f.write((const uint8_t*)&bitsPerSample, 2);
+    f.write((const uint8_t*)"data", 4);
+    f.write((const uint8_t*)&subchunk2Size, 4);
+
+    // Two-tone chime: 523Hz (C5) for 0.5s, then 659Hz (E5) for 0.7s with gentle decay
+    int16_t buf[256];
+    for (uint32_t i = 0; i < numSamples; i += 128) {
+        for (int s = 0; s < 128; s++) {
+            uint32_t n = i + s;
+            float t = (float)n / (float)sampleRate;
+            float freq = (t < 0.45f) ? 523.25f : 659.25f;
+            float env = 1.0f - (t / 1.3f);
+            if (env < 0.0f) env = 0.0f;
+            int16_t val = (int16_t)(sinf(2.0f * 3.14159265f * freq * t) * 14000.0f * env);
+            buf[s * 2] = val;     // Left
+            buf[s * 2 + 1] = val; // Right
+        }
+        f.write((const uint8_t*)buf, 128 * 4);
+    }
+    f.close();
+    DEBUG_PRINTLN("[AUDIO] ✓ Generated Croenix boot chime in SPIFFS (/boot_tone.wav)");
+}
+
+bool playBootChime() {
+    if (!audioInitialized) return false;
+    createBootToneFile();
+    DEBUG_PRINTLN("[AUDIO] ▶ Playing Croenix audio verification chime to DAC...");
+    return audio.connecttoFS(SPIFFS, "/boot_tone.wav");
 }

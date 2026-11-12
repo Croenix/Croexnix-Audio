@@ -35,7 +35,7 @@ static uint32_t lastHeapReport = 0;
 void audioTask(void* parameter) {
     DEBUG_PRINTLN("[TASK:AUDIO] Audio task started on Core 1");
     DEBUG_PRINTF("[TASK:AUDIO] Priority: %d, Stack: %d bytes\n",
-                 AUDIO_TASK_PRIORITY, AUDIO_STACK_SIZE);
+                 AUDIO_TASK_PRIORITY, CRX_AUDIO_TASK_STACK);
 
     // Small delay to allow other systems to initialize
     vTaskDelay(pdMS_TO_TICKS(100));
@@ -210,7 +210,7 @@ void setup() {
     xTaskCreatePinnedToCore(
         audioTask,
         "AudioTask",
-        AUDIO_STACK_SIZE,
+        CRX_AUDIO_TASK_STACK,
         nullptr,
         AUDIO_TASK_PRIORITY,
         &audioTaskHandle,
@@ -258,6 +258,10 @@ void setup() {
     DEBUG_PRINTF("[SYSTEM] WebSocket URL: ws://%s:%d\n", AP_IP, WS_PORT);
     DEBUG_PRINTLN("════════════════════════════════════════════════════════════");
     DEBUG_PRINTLN();
+
+    // Trigger startup verification chime through I2S DAC
+    DEBUG_PRINTLN("[SYSTEM] Playing I2S DAC verification chime...");
+    playBootChime();
 
     // Set initial source from NVS
     if (g_deviceState.currentSource == SOURCE_SD_CARD && isSDCardMounted()) {

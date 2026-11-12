@@ -42,4 +42,7 @@ bool isAudioPlaying();
 uint32_t getCurrentPosition();
 uint32_t getCurrentDuration();
 
+// Hardware Audio Verification Chime
+bool playBootChime();
+
 #endif // AUDIO_MANAGER_H
